@@ -20,7 +20,9 @@
 > | `entities.location_address` | An address row under the card like the app ("Ks. Budkiewicza 28A, Ząbki · Last parked today at 17:08"), from any sensor holding an address (+ optional `parked_since` attribute). |
 > | `labels.minutes` + `locale` | Proper plural forms for the minutes left, e.g. Polish "1 minuta / 2 minuty / 50 minut". |
 >
-> Full description: [App-style header](#app-style-header-optional) and [Controls and tiles](#controls-and-tiles-optional) below.
+> Sections marked **"added in this fork"** below are not in the original repository; everything else is the original README.
+>
+> Full description: [App-style header](#app-style-header-optional--added-in-this-fork) and [Controls and tiles](#controls-and-tiles-optional--added-in-this-fork) and [Address row](#address-row-optional--added-in-this-fork) below.
 >
 > **Status:** the header and charging time are proposed upstream in [ruudmens/ha-volvo-card#8](https://github.com/ruudmens/ha-volvo-card/pull/8). The controls exist only in this fork for now.
 > If it is merged, this fork is no longer needed. Switch back to the original repository in HACS.
@@ -187,7 +189,7 @@ labels:
   time_left: resterend
 ```
 
-## App-style header (optional)
+## App-style header (optional) — added in this fork
 
 By default the header is range-first, and while a hybrid is charging it swaps the electric line
 for the fuel level. Set `header: app` to get the layout of the Volvo Cars app instead: battery %
@@ -210,7 +212,7 @@ labels:            # optional, all have English defaults
   time_left: left
 ```
 
-## Controls and tiles (optional)
+## Controls and tiles (optional) — added in this fork
 
 `controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:
 
@@ -248,7 +250,7 @@ labels:
   # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running
 ```
 
-## Address row (optional)
+## Address row (optional) — added in this fork
 
 The Volvo API gives GPS coordinates (the integration's `device_tracker`) but no address.
 Point `entities.location_address` at any sensor whose state is a readable address. If that sensor
