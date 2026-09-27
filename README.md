@@ -5,6 +5,10 @@
 > Volvo Cars app. Everything else is identical to upstream, and the defaults are unchanged:
 > without the new options the card behaves exactly like the original.
 >
+> <img src="assets/app-style-card.png" alt="Volvo Car Card with app-style header, controls, tiles and address row (Polish labels)" width="360">
+>
+> *2025 XC60 PHEV while charging: `header: app`, `controls: true`, `location_address`, with Polish labels. The address is a placeholder.*
+>
 > **What this fork adds**
 >
 > | option | what it does |
