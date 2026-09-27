@@ -20,8 +20,11 @@ import {
   LOCK_OPEN_ICON_INNER,
   FAN_ICON_INNER,
   CABLE_IMAGE_PNG,
+  POWER_ICON_INNER,
+  MORE_ICON_INNER,
+  BOLT_ICON_INNER,
 } from "./assets";
-import { label } from "./labels";
+import { label, minutesWord } from "./labels";
 import { resolveOverlay } from "./overlays";
 
 interface HeaderMain {
@@ -43,6 +46,10 @@ export class VolvoCarCard extends LitElement {
   @state() private config!: VolvoCardConfig;
   @state() private actionsOpen = false;
   @state() private climateOn = false;
+  @state() private moreOpen = false;
+  /** Control waiting for a confirming second tap ("unlock" / "start"), cleared after a few seconds. */
+  @state() private armed: string | null = null;
+  private armTimer?: number;
 
   public setConfig(config: VolvoCardConfig): void {
     if (!config || !config.entities) {
@@ -126,6 +133,39 @@ export class VolvoCarCard extends LitElement {
     return `${round(dteTank)} km ${label(this.config.labels, "fuel")}`;
   }
 
+  private get locale(): string {
+    return this.config.locale || this.hass.locale?.language || "en";
+  }
+
+  /** Minutes left as a number, or null when unknown / not numeric. */
+  private minutesLeft(): number | null {
+    const id = this.config.entities.charging_time_left;
+    if (!id) return null;
+    const n = Number(getState(this.hass, id));
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const unit = this.hass.states[id]?.attributes?.unit_of_measurement;
+    return Math.round(unit === "h" ? n * 60 : unit === "s" ? n / 60 : n);
+  }
+
+  /** Clock time when charging will be done, counted from when the sensor last changed. */
+  private chargeDoneAt(): string | null {
+    const id = this.config.entities.charging_time_left;
+    const minutes = this.minutesLeft();
+    if (!id || minutes === null) return null;
+    const since = this.hass.states[id]?.last_changed;
+    const base = since ? new Date(since).getTime() : Date.now();
+    const done = new Date(base + minutes * 60_000);
+    const tf = this.hass.locale?.time_format;
+    const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+    if (tf === "24") opts.hourCycle = "h23";
+    if (tf === "12") opts.hour12 = true;
+    try {
+      return done.toLocaleTimeString(this.locale, opts);
+    } catch (_e) {
+      return done.toLocaleTimeString(undefined, opts);
+    }
+  }
+
   private get appHeader(): boolean {
     return this.config.header === "app";
   }
@@ -144,7 +184,7 @@ export class VolvoCarCard extends LitElement {
       if (minutes <= 0) return null;
       const h = Math.floor(minutes / 60);
       const m = minutes % 60;
-      text = h > 0 ? `${h} h ${m} min` : `${m} min`;
+      text = h > 0 ? `${h} h ${m} min` : `${m} ${minutesWord(this.config.labels, m, this.locale)}`;
     } else {
       text = raw;
     }
@@ -241,6 +281,7 @@ export class VolvoCarCard extends LitElement {
           ${status ? html`<div class="status ${overlayClass}">${status}</div>` : nothing}
           ${timeLeft ? html`<div class="status-right ${overlayClass}">${timeLeft}</div>` : nothing}
         </div>
+        ${this.config.controls ? this.renderControls(e, kind, chargeState, connected) : nothing}
       </ha-card>
       ${this.actionsOpen ? this.renderActionsDialog(e, isDark) : nothing}
     `;
@@ -271,6 +312,144 @@ export class VolvoCarCard extends LitElement {
     const { start_climatisation, stop_climatisation } = this.config.entities;
     this.pressButton(this.climateOn ? stop_climatisation : start_climatisation);
     this.climateOn = !this.climateOn;
+  }
+
+  private arm(key: string): boolean {
+    // true = already armed, go ahead; false = armed now, wait for the second tap
+    if (this.armed === key) {
+      this.disarm();
+      return true;
+    }
+    this.armed = key;
+    window.clearTimeout(this.armTimer);
+    this.armTimer = window.setTimeout(() => this.disarm(), 4000);
+    return false;
+  }
+
+  private disarm(): void {
+    window.clearTimeout(this.armTimer);
+    this.armed = null;
+  }
+
+  private moreInfo(entityId?: string): void {
+    if (!entityId) return;
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+  }
+
+  private onLockControl(isLocked: boolean): void {
+    if (isLocked && !this.arm("unlock")) return; // unlocking needs a confirming tap
+    this.disarm();
+    const entityId = this.config.entities.lock;
+    if (entityId) this.hass.callService("lock", isLocked ? "unlock" : "lock", { entity_id: entityId });
+  }
+
+  private onEngineControl(running: boolean): void {
+    const { start_engine, stop_engine } = this.config.entities;
+    if (running) {
+      this.disarm();
+      this.pressButton(stop_engine);
+      return;
+    }
+    if (!this.arm("start")) return; // remote start needs a confirming tap
+    this.pressButton(start_engine);
+  }
+
+  private renderControls(
+    e: VolvoCardEntities,
+    kind: VehicleKind,
+    chargeState: ChargeState,
+    connected: boolean
+  ): TemplateResult {
+    const L = (k: Parameters<typeof label>[1]) => label(this.config.labels, k);
+    const isLocked = getState(this.hass, e.lock) === "locked";
+    const hasFan = !!(e.start_climatisation || e.stop_climatisation);
+    const hasEngine = !!(e.start_engine || e.stop_engine);
+    const engineOn = getState(this.hass, e.engine_status) === "on";
+    const extras = [
+      { id: e.flash, text: L("flash") },
+      { id: e.honk, text: L("honk") },
+      { id: e.honk_flash, text: L("honk_flash") },
+    ].filter((x) => !!x.id);
+
+    let chargeSub = "";
+    if (kind !== "ice") {
+      if (chargeState === "charging") {
+        const at = this.chargeDoneAt();
+        chargeSub = at ? `${L("charge_done_at")} ${at}` : label(this.config.labels, "charging");
+      } else {
+        chargeSub = connected ? L("charge_plugged_in") : L("charge_not_plugged_in");
+      }
+    }
+
+    const hint =
+      this.armed === "unlock" ? `${L("confirm")}: ${L("unlock")}` : this.armed === "start" ? `${L("confirm")}: ${L("start_car")}` : "";
+
+    return html`
+      <div class="controls">
+        ${e.lock
+          ? html`<button
+              class="ctl ${this.armed === "unlock" ? "armed" : ""}"
+              title=${isLocked ? L("unlock") : L("lock")}
+              aria-label=${isLocked ? L("unlock") : L("lock")}
+              @click=${() => this.onLockControl(isLocked)}
+            >
+              ${this.renderStrokeIcon(isLocked ? LOCK_ICON_INNER : LOCK_OPEN_ICON_INNER)}
+            </button>`
+          : nothing}
+        ${hasFan
+          ? html`<button
+              class="ctl ${this.climateOn ? "on" : ""}"
+              title=${L("climate")}
+              aria-label=${L("climate")}
+              @click=${() => this.toggleClimate()}
+            >
+              ${this.renderStrokeIcon(FAN_ICON_INNER)}
+            </button>`
+          : nothing}
+        ${hasEngine
+          ? html`<button
+              class="ctl ${engineOn ? "on" : ""} ${this.armed === "start" ? "armed" : ""}"
+              title=${engineOn ? L("stop_car") : L("start_car")}
+              aria-label=${engineOn ? L("stop_car") : L("start_car")}
+              @click=${() => this.onEngineControl(engineOn)}
+            >
+              ${this.renderStrokeIcon(POWER_ICON_INNER)}
+            </button>`
+          : nothing}
+        ${extras.length
+          ? html`<button
+              class="ctl ${this.moreOpen ? "on" : ""}"
+              title=${L("more")}
+              aria-label=${L("more")}
+              @click=${() => (this.moreOpen = !this.moreOpen)}
+            >
+              ${this.renderStrokeIcon(MORE_ICON_INNER)}
+            </button>`
+          : nothing}
+      </div>
+      ${hint ? html`<div class="ctl-hint">${hint}</div>` : nothing}
+      ${this.moreOpen && extras.length
+        ? html`<div class="ctl-more">
+            ${extras.map((x) => html`<button class="chip" @click=${() => this.pressButton(x.id)}>${x.text}</button>`)}
+          </div>`
+        : nothing}
+      <div class="tiles">
+        ${kind !== "ice"
+          ? html`<div class="tile" @click=${() => this.moreInfo(e.charging_status || e.battery)}>
+              ${this.renderStrokeIcon(BOLT_ICON_INNER)}
+              <div class="tile-title">${L("charge")}</div>
+              <div class="tile-sub">${chargeSub}</div>
+            </div>`
+          : nothing}
+        ${hasFan
+          ? html`<div class="tile" @click=${() => this.toggleClimate()}>
+              ${this.renderStrokeIcon(FAN_ICON_INNER)}
+              <div class="tile-title">${L("climate")}</div>
+              <div class="tile-sub">${this.climateOn ? L("climate_running") : L("climate_not_running")}</div>
+            </div>`
+          : nothing}
+      </div>
+    `;
   }
 
   private renderActionsDialog(e: VolvoCardEntities, isDark: boolean): TemplateResult {
@@ -509,6 +688,93 @@ export class VolvoCarCard extends LitElement {
       color: rgba(255, 255, 255, 0.5);
       margin-top: -7px;
       margin-left: 3px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 14px 8px;
+      background: var(--volvo-controls-background, rgba(127, 127, 127, 0.18));
+      font-family: "Hedvig Letters Sans", sans-serif;
+    }
+    .ctl {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ctl .icon-svg-stroke {
+      width: 28px;
+      height: 28px;
+    }
+    .ctl:hover {
+      background: rgba(127, 127, 127, 0.2);
+    }
+    .ctl.on {
+      color: var(--volvo-accent-color);
+    }
+    .ctl.armed {
+      background: rgba(255, 170, 0, 0.25);
+      color: #ffb020;
+    }
+    .ctl-hint {
+      text-align: center;
+      font-size: 13px;
+      padding: 6px 0 0;
+      color: #ffb020;
+      font-family: "Hedvig Letters Sans", sans-serif;
+    }
+    .ctl-more {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      padding: 10px 8px 0;
+    }
+    .chip {
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.4));
+      border-radius: 16px;
+      padding: 6px 12px;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-family: "Hedvig Letters Sans", sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tiles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      margin-top: 10px;
+      background: var(--divider-color, rgba(127, 127, 127, 0.25));
+      font-family: "Hedvig Letters Sans", sans-serif;
+    }
+    .tile {
+      background: var(--ha-card-background, var(--card-background-color));
+      padding: 14px 14px 16px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+    }
+    .tile .icon-svg-stroke {
+      width: 26px;
+      height: 26px;
+    }
+    .tile-title {
+      font-size: 19px;
+      margin-top: 18px;
+    }
+    .tile-sub {
+      font-size: 14px;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
     }
 
     .status-right {

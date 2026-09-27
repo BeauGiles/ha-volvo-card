@@ -3,8 +3,10 @@ export interface HomeAssistant {
     [entityId: string]: {
       state: string;
       attributes: Record<string, any>;
+      last_changed?: string;
     };
   };
+  locale?: { language?: string; time_format?: string };
   themes?: {
     darkMode: boolean;
   };
@@ -26,6 +28,13 @@ export interface VolvoCardEntities {
   /** Remaining charging time, e.g. the Volvo integration's `estimated_charging_time` sensor (minutes).
    *  Shown on the right of the status line while charging, like the Volvo app ("1 h 17 min left"). */
   charging_time_left?: string;
+  /** Optional remote-control entities used by `controls: true`. */
+  start_engine?: string;
+  stop_engine?: string;
+  engine_status?: string;
+  flash?: string;
+  honk?: string;
+  honk_flash?: string;
 }
 
 export interface VolvoCardImages {
@@ -54,6 +63,23 @@ export interface VolvoCardLabels {
   fuel?: string;
   fuel_level?: string;
   time_left?: string;
+  /** Minutes word when less than an hour is left. A string, or plural forms keyed by
+   *  Intl.PluralRules category, e.g. { one: "minuta", few: "minuty", many: "minut" }. */
+  minutes?: string | Record<string, string>;
+  /** Controls bar and tiles (`controls: true`). */
+  start_car?: string;
+  stop_car?: string;
+  more?: string;
+  flash?: string;
+  honk?: string;
+  honk_flash?: string;
+  confirm?: string;
+  charge?: string;
+  charge_done_at?: string;
+  charge_plugged_in?: string;
+  charge_not_plugged_in?: string;
+  climate_running?: string;
+  climate_not_running?: string;
 }
 
 export interface VolvoCardConfig {
@@ -69,6 +95,12 @@ export interface VolvoCardConfig {
   /** "classic" (default): range-first header. "app": battery-first header like the Volvo Cars app —
    *  a hybrid always shows battery %, electric range and fuel range, also while charging. */
   header?: "classic" | "app";
+  /** Adds the Volvo Cars app controls under the car: lock, climate, remote start and a "more"
+   *  menu (flash / honk), plus Charge and Climate tiles. Unlock and remote start ask for a
+   *  second tap to confirm. */
+  controls?: boolean;
+  /** Locale for plural forms and the clock in the Charge tile. Defaults to the HA user language. */
+  locale?: string;
 }
 
 export type ChargeState = "idle" | "scheduled" | "charging";

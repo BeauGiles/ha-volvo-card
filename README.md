@@ -12,10 +12,12 @@
 > | `header: app` | Battery-first header like the Volvo Cars app. A hybrid always shows battery %, electric range and fuel range, **also while charging** (upstream hides the battery and shows total range + fuel % while charging). |
 > | `entities.charging_time_left` | While charging, shows the remaining time on the right of the status line, e.g. `1 h 17 min left`. Point it at the integration's `estimated_charging_time` sensor. |
 > | `labels.electric` / `fuel` / `fuel_level` / `time_left` | Makes the header lines translatable, like the existing status labels. |
+> | `controls: true` | The Volvo Cars app controls under the car: lock/unlock, climate, remote start and a "…" menu (flash / honk). Also adds **Charge** ("Done at 19:58") and **Climate** tiles. Unlocking and remote start need a second tap to confirm. |
+> | `labels.minutes` + `locale` | Proper plural forms for the minutes left, e.g. Polish "1 minuta / 2 minuty / 50 minut". |
 >
-> Full description: [App-style header](#app-style-header-optional) below.
+> Full description: [App-style header](#app-style-header-optional) and [Controls and tiles](#controls-and-tiles-optional) below.
 >
-> **Status:** proposed upstream in [ruudmens/ha-volvo-card#8](https://github.com/ruudmens/ha-volvo-card/pull/8).
+> **Status:** the header and charging time are proposed upstream in [ruudmens/ha-volvo-card#8](https://github.com/ruudmens/ha-volvo-card/pull/8). The controls exist only in this fork for now.
 > If it is merged, this fork is no longer needed. Switch back to the original repository in HACS.
 >
 > **Install:** HACS → Frontend → ⋮ → Custom repositories → `https://github.com/RafalSzy/ha-volvo-card`,
@@ -201,6 +203,44 @@ labels:            # optional, all have English defaults
   fuel: fuel
   fuel_level: Fuel
   time_left: left
+```
+
+## Controls and tiles (optional)
+
+`controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:
+
+- **Lock / unlock** (`lock`). Unlocking asks for a second tap within 4 seconds.
+- **Climate** (`start_climatisation` / `stop_climatisation`). The integration has no climate-status
+  entity, so the card tracks on/off itself, the same way the existing tap dialog does.
+- **Remote start** (`start_engine` / `stop_engine`, with state from `engine_status`). Starting asks for a
+  second tap.
+- **"…" menu** (`flash`, `honk`, `honk_flash`).
+- **Charge tile**: "Done at 19:58" while charging (needs `charging_time_left`), otherwise
+  "Plugged in" / "Not plugged in". Tapping it opens the charging status.
+- **Climate tile**: running / not running. Tapping it toggles climate.
+
+A button only appears when its entity is configured. The Volvo API has no air-purification
+command, so the app's "Purify air" button is not available.
+
+```yaml
+type: custom:volvo-car-card
+header: app
+controls: true
+locale: pl               # plural forms and clock; defaults to the HA user language
+entities:
+  # ...existing entities...
+  charging_time_left: sensor.volvo_xc60_estimated_charging_time
+  start_engine: button.volvo_xc60_start_engine
+  stop_engine: button.volvo_xc60_stop_engine
+  engine_status: binary_sensor.volvo_xc60_engine_status
+  flash: button.volvo_xc60_flash
+  honk: button.volvo_xc60_honk
+  honk_flash: button.volvo_xc60_honk_flash
+labels:
+  minutes: { one: minuta, few: minuty, many: minut, other: minuty }
+  charge_done_at: Gotowe o
+  # all labels: start_car, stop_car, more, flash, honk, honk_flash, confirm, charge,
+  # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running
 ```
 
 ## The image backend (required separately — not part of the HACS install)
