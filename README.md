@@ -1,4 +1,30 @@
-# Volvo Car Card
+# Volvo Car Card — fork by RafalSzy
+
+> **This is a fork of [ruudmens/ha-volvo-card](https://github.com/ruudmens/ha-volvo-card).**
+> It is kept for a 2025 Volvo XC60 T6 PHEV and adds an optional layout that matches the
+> Volvo Cars app. Everything else is identical to upstream, and the defaults are unchanged:
+> without the new options the card behaves exactly like the original.
+>
+> **What this fork adds**
+>
+> | option | what it does |
+> |---|---|
+> | `header: app` | Battery-first header like the Volvo Cars app. A hybrid always shows battery %, electric range and fuel range, **also while charging** (upstream hides the battery and shows total range + fuel % while charging). |
+> | `entities.charging_time_left` | While charging, shows the remaining time on the right of the status line, e.g. `1 h 17 min left`. Point it at the integration's `estimated_charging_time` sensor. |
+> | `labels.electric` / `fuel` / `fuel_level` / `time_left` | Makes the header lines translatable, like the existing status labels. |
+>
+> Full description: [App-style header](#app-style-header-optional) below.
+>
+> **Status:** proposed upstream in [ruudmens/ha-volvo-card#8](https://github.com/ruudmens/ha-volvo-card/pull/8).
+> If it is merged, this fork is no longer needed. Switch back to the original repository in HACS.
+>
+> **Install:** HACS → Frontend → ⋮ → Custom repositories → `https://github.com/RafalSzy/ha-volvo-card`,
+> category *Dashboard*. HACS then takes updates only from this fork, never from upstream.
+>
+> **Keeping up with upstream** (in a local clone):
+> `git fetch upstream && git merge upstream/main && npm run build`, then commit and push to `main`.
+> HACS will offer the update.
+
 
 A [Home Assistant](https://www.home-assistant.io/) Lovelace card for vehicles exposed by the
 [Volvo integration](https://www.home-assistant.io/integrations/volvo/), styled after the layout of
