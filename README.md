@@ -13,6 +13,7 @@
 > | `entities.charging_time_left` | While charging, shows the remaining time on the right of the status line, e.g. `1 h 17 min left`. Point it at the integration's `estimated_charging_time` sensor. |
 > | `labels.electric` / `fuel` / `fuel_level` / `time_left` | Makes the header lines translatable, like the existing status labels. |
 > | `controls: true` | The Volvo Cars app controls under the car: lock/unlock, climate, remote start and a "…" menu (flash / honk). Also adds **Charge** ("Done at 19:58") and **Climate** tiles. Unlocking and remote start need a second tap to confirm. |
+> | `entities.location_address` | An address row under the card like the app ("Ks. Budkiewicza 28A, Ząbki · Last parked today at 17:08"), from any sensor holding an address (+ optional `parked_since` attribute). |
 > | `labels.minutes` + `locale` | Proper plural forms for the minutes left, e.g. Polish "1 minuta / 2 minuty / 50 minut". |
 >
 > Full description: [App-style header](#app-style-header-optional) and [Controls and tiles](#controls-and-tiles-optional) below.
@@ -241,6 +242,57 @@ labels:
   charge_done_at: Gotowe o
   # all labels: start_car, stop_car, more, flash, honk, honk_flash, confirm, charge,
   # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running
+```
+
+## Address row (optional)
+
+The Volvo API gives GPS coordinates (the integration's `device_tracker`) but no address.
+Point `entities.location_address` at any sensor whose state is a readable address. If that sensor
+has a `parked_since` attribute (an ISO timestamp), the row also shows "Last parked today at 17:08".
+Tapping the row opens the `location` entity, which has a map.
+
+One way to build that sensor is a trigger-based template that reverse-geocodes with OpenStreetMap Nominatim
+whenever the tracker's coordinates change. It treats moves under 150 m as GPS jitter, so
+`parked_since` doesn't reset on every poll:
+
+```yaml
+rest_command:
+  nominatim_reverse:
+    url: "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat={{ lat }}&lon={{ lon }}"
+    headers:
+      User-Agent: "HomeAssistant-volvo-address/1.0"
+
+template:
+  - trigger:
+      - trigger: state
+        entity_id: device_tracker.volvo_xc60_location
+        attribute: latitude
+      - trigger: state
+        entity_id: device_tracker.volvo_xc60_location
+        attribute: longitude
+    action:
+      - variables:
+          lat: "{{ state_attr('device_tracker.volvo_xc60_location', 'latitude') | float(0) }}"
+          lon: "{{ state_attr('device_tracker.volvo_xc60_location', 'longitude') | float(0) }}"
+          plat: "{{ state_attr('sensor.volvo_xc60_address', 'latitude') | float(0) }}"
+          plon: "{{ state_attr('sensor.volvo_xc60_address', 'longitude') | float(0) }}"
+          moved: "{{ plat == 0 or distance(lat, lon, plat, plon) > 0.15 }}"
+      - action: rest_command.nominatim_reverse
+        data: { lat: "{{ lat }}", lon: "{{ lon }}" }
+        response_variable: geo
+        continue_on_error: true
+    sensor:
+      - name: "Volvo XC60 address"
+        unique_id: volvo_xc60_address
+        state: >-
+          {% set a = geo.content.address if geo is defined and geo.status == 200 else {} %}
+          {{ ([[a.road | default(''), a.house_number | default('')] | select | join(' '),
+               a.city | default(a.town | default(a.village | default('')))] | select | join(', '))[:250] or 'unknown' }}
+        attributes:
+          parked_since: >-
+            {{ now().isoformat() if moved else state_attr('sensor.volvo_xc60_address', 'parked_since') or now().isoformat() }}
+          latitude: "{{ lat if moved else plat }}"
+          longitude: "{{ lon if moved else plon }}"
 ```
 
 ## The image backend (required separately — not part of the HACS install)

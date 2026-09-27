@@ -35,6 +35,9 @@ export interface VolvoCardEntities {
   flash?: string;
   honk?: string;
   honk_flash?: string;
+  /** Sensor whose state is a human-readable address (e.g. from reverse geocoding) and whose
+   *  optional `parked_since` attribute (ISO time) says since when the car stands there. */
+  location_address?: string;
 }
 
 export interface VolvoCardImages {
@@ -80,6 +83,9 @@ export interface VolvoCardLabels {
   charge_not_plugged_in?: string;
   climate_running?: string;
   climate_not_running?: string;
+  parked_today?: string;
+  parked_yesterday?: string;
+  parked_on?: string;
 }
 
 export interface VolvoCardConfig {

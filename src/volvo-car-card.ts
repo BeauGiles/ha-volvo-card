@@ -23,6 +23,7 @@ import {
   POWER_ICON_INNER,
   MORE_ICON_INNER,
   BOLT_ICON_INNER,
+  PIN_ICON_INNER,
 } from "./assets";
 import { label, minutesWord } from "./labels";
 import { resolveOverlay } from "./overlays";
@@ -154,16 +155,7 @@ export class VolvoCarCard extends LitElement {
     if (!id || minutes === null) return null;
     const since = this.hass.states[id]?.last_changed;
     const base = since ? new Date(since).getTime() : Date.now();
-    const done = new Date(base + minutes * 60_000);
-    const tf = this.hass.locale?.time_format;
-    const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
-    if (tf === "24") opts.hourCycle = "h23";
-    if (tf === "12") opts.hour12 = true;
-    try {
-      return done.toLocaleTimeString(this.locale, opts);
-    } catch (_e) {
-      return done.toLocaleTimeString(undefined, opts);
-    }
+    return this.timeText(new Date(base + minutes * 60_000));
   }
 
   private get appHeader(): boolean {
@@ -282,6 +274,7 @@ export class VolvoCarCard extends LitElement {
           ${timeLeft ? html`<div class="status-right ${overlayClass}">${timeLeft}</div>` : nothing}
         </div>
         ${this.config.controls ? this.renderControls(e, kind, chargeState, connected) : nothing}
+        ${e.location_address ? this.renderAddress(e) : nothing}
       </ha-card>
       ${this.actionsOpen ? this.renderActionsDialog(e, isDark) : nothing}
     `;
@@ -450,6 +443,51 @@ export class VolvoCarCard extends LitElement {
           : nothing}
       </div>
     `;
+  }
+
+  private timeText(d: Date): string {
+    const tf = this.hass.locale?.time_format;
+    const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+    if (tf === "24") opts.hourCycle = "h23";
+    if (tf === "12") opts.hour12 = true;
+    try {
+      return d.toLocaleTimeString(this.locale, opts);
+    } catch (_e) {
+      return d.toLocaleTimeString(undefined, opts);
+    }
+  }
+
+  /** "Last parked today at 17:08" / "yesterday at …" / "Last parked 25.09 17:08". */
+  private parkedText(iso?: string): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const L = (k: Parameters<typeof label>[1]) => label(this.config.labels, k);
+    const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((day(new Date()) - day(d)) / 86_400_000);
+    if (diff === 0) return `${L("parked_today")} ${this.timeText(d)}`;
+    if (diff === 1) return `${L("parked_yesterday")} ${this.timeText(d)}`;
+    let date: string;
+    try {
+      date = d.toLocaleDateString(this.locale, { day: "numeric", month: "short" });
+    } catch (_e) {
+      date = d.toLocaleDateString();
+    }
+    return `${L("parked_on")} ${date} ${this.timeText(d)}`;
+  }
+
+  private renderAddress(e: VolvoCardEntities): TemplateResult {
+    const st = this.hass.states[e.location_address!];
+    const addr = st?.state;
+    if (!addr || addr === "unknown" || addr === "unavailable") return html``;
+    const sub = this.parkedText(st.attributes?.parked_since);
+    return html`<div class="address" @click=${() => this.moreInfo(e.location || e.location_address)}>
+      ${this.renderStrokeIcon(PIN_ICON_INNER)}
+      <div>
+        <div class="address-title">${addr}</div>
+        ${sub ? html`<div class="address-sub">${sub}</div>` : nothing}
+      </div>
+    </div>`;
   }
 
   private renderActionsDialog(e: VolvoCardEntities, isDark: boolean): TemplateResult {
@@ -772,6 +810,30 @@ export class VolvoCarCard extends LitElement {
       margin-top: 18px;
     }
     .tile-sub {
+      font-size: 14px;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+
+    .address {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--divider-color, rgba(127, 127, 127, 0.25));
+      cursor: pointer;
+      color: var(--primary-text-color);
+      font-family: "Hedvig Letters Sans", sans-serif;
+    }
+    .address .icon-svg-stroke {
+      width: 26px;
+      height: 26px;
+      flex: none;
+    }
+    .address-title {
+      font-size: 17px;
+    }
+    .address-sub {
       font-size: 14px;
       color: var(--secondary-text-color);
       margin-top: 2px;
