@@ -979,7 +979,6 @@ export class VolvoCarCard extends LitElement {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1px;
-      margin-top: 10px;
       background: var(--divider-color, rgba(127, 127, 127, 0.25));
       font-family: "Hedvig Letters Sans", sans-serif;
     }
