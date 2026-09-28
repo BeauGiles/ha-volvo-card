@@ -33,6 +33,9 @@ export interface VolvoCardEntities {
   /** Remaining charging time, e.g. the Volvo integration's `estimated_charging_time` sensor (minutes).
    *  Shown on the right of the status line while charging, like the Volvo app ("1 h 17 min left"). */
   charging_time_left?: string;
+  /** Live charging power sensor (any Watt or kW unit). Shown next to "Charging" as
+   *  "Charging · 11.3 kW", rounded to one decimal kW. */
+  charging_power?: string;
   /** Optional remote-control entities used by `controls: true`. */
   start_engine?: string;
   stop_engine?: string;

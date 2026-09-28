@@ -207,6 +207,19 @@ export class VolvoCarCard extends LitElement {
     return `${text} ${label(this.config.labels, "time_left")}`.trim();
   }
 
+  /** "11.3 kW" from a power sensor in W or kW; a non-numeric state is shown as-is. */
+  private chargingPower(): string | null {
+    const id = this.config.entities.charging_power;
+    if (!id) return null;
+    const raw = getState(this.hass, id);
+    if (raw === undefined || raw === "" || raw === "unknown" || raw === "unavailable") return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return raw;
+    const unit = (this.hass.states[id]?.attributes?.unit_of_measurement || "W").toLowerCase();
+    const kw = unit === "kw" ? n : n / 1000;
+    return `${kw.toFixed(1)} kW`;
+  }
+
   private carImageStyle(connected: boolean): { style: Record<string, string>; hasImage: boolean } {
     const { images } = this.config;
     const src =
@@ -268,6 +281,7 @@ export class VolvoCarCard extends LitElement {
     const sKey = statusKey(this.hass, e, chargeState, kind);
     const status = sKey ? label(this.config.labels, sKey) : "";
     const timeLeft = chargeState === "charging" ? this.chargingTimeLeft() : null;
+    const powerText = chargeState === "charging" ? this.chargingPower() : null;
     const { style: imgStyle, hasImage } = this.carImageStyle(connected);
     const isDark = this.hass.themes?.darkMode ?? true;
     const cardBackground = this.effectiveBackground(isDark);
@@ -338,7 +352,12 @@ export class VolvoCarCard extends LitElement {
               : nothing}
           </div>
           ${status
-            ? html`<div class="status ${overlayClass}" @click=${this.moreInfoStop(statusEntity)}>${status}</div>`
+            ? html`<div class="status ${overlayClass}">
+                <span @click=${this.moreInfoStop(statusEntity)}>${status}</span>
+                ${powerText
+                  ? html`<span @click=${this.moreInfoStop(e.charging_power)}> · ${powerText}</span>`
+                  : nothing}
+              </div>`
             : nothing}
           ${timeLeft
             ? html`<div class="status-right ${overlayClass}" @click=${this.moreInfoStop(e.charging_time_left)}>${timeLeft}</div>`

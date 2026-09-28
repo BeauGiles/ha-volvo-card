@@ -265,12 +265,17 @@ Add `charging_time_left` to show the remaining charging time on the right of the
 while charging ("1 h 17 min left"). Point it at the integration's `estimated_charging_time`
 sensor (minutes); a non-numeric sensor is shown as-is.
 
+Add `charging_power` to show live charging power next to the status text while charging
+("Charging · 11.3 kW"). Point it at any power sensor, in W or kW — it's converted and rounded
+to one decimal kW automatically.
+
 ```yaml
 type: custom:volvo-car-card
 header: app
 entities:
   ...
   charging_time_left: sensor.volvo_xc60_estimated_charging_time
+  charging_power: sensor.volvo_xc60_charging_power
 labels:            # optional, all have English defaults
   electric: electric
   fuel: fuel
