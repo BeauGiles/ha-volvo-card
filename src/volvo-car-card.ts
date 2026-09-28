@@ -241,6 +241,13 @@ export class VolvoCarCard extends LitElement {
     // fall back to plain black/dark-grey text instead of white-on-nothing.
     const overlayClass = !hasImage || !isDark ? "theme-text" : "";
 
+    // Which entity each stat's "more info" (history) should open — kept next to the
+    // value that displays it, since both depend on the same kind/chargeState branching.
+    const mainEntity =
+      kind === "ice" ? e.distance_to_empty_tank : chargeState === "scheduled" || this.appHeader ? e.battery : e.distance_to_empty_battery;
+    const sub1Entity = sub1 ? (sub1.icon === "lightning" ? e.distance_to_empty_battery : e.fuel_amount) : undefined;
+    const statusEntity = chargeState === "idle" ? e.lock : e.charging_status || e.charging_connection_status;
+
     return html`
       <ha-card>
         <div class="volvo-card" @click=${this.openActions}>
@@ -252,14 +259,14 @@ export class VolvoCarCard extends LitElement {
           ${connected ? this.renderCable() : nothing}
           <div class="header ${overlayClass}">
             ${name ? html`<div class="vehicle-name">${name}</div>` : nothing}
-            <div class="row main-row">
+            <div class="row main-row" @click=${this.moreInfoStop(mainEntity)}>
               <span class="main-value"
                 >${main.value}<span class="main-unit"> ${main.unit}</span></span
               >
             </div>
             ${sub1
               ? html`
-                  <div class="row sub-row">
+                  <div class="row sub-row" @click=${this.moreInfoStop(sub1Entity)}>
                     ${sub1.icon === "lightning"
                       ? this.renderLightningIcon()
                       : html`<ha-icon icon=${sub1.icon}></ha-icon>`}
@@ -268,10 +275,16 @@ export class VolvoCarCard extends LitElement {
                   </div>
                 `
               : nothing}
-            ${sub2 ? html`<div class="row sub-row-2">${sub2}</div>` : nothing}
+            ${sub2
+              ? html`<div class="row sub-row-2" @click=${this.moreInfoStop(e.distance_to_empty_tank)}>${sub2}</div>`
+              : nothing}
           </div>
-          ${status ? html`<div class="status ${overlayClass}">${status}</div>` : nothing}
-          ${timeLeft ? html`<div class="status-right ${overlayClass}">${timeLeft}</div>` : nothing}
+          ${status
+            ? html`<div class="status ${overlayClass}" @click=${this.moreInfoStop(statusEntity)}>${status}</div>`
+            : nothing}
+          ${timeLeft
+            ? html`<div class="status-right ${overlayClass}" @click=${this.moreInfoStop(e.charging_time_left)}>${timeLeft}</div>`
+            : nothing}
         </div>
         ${this.config.controls ? this.renderControls(e, kind, chargeState, connected) : nothing}
         ${e.location_address ? this.renderAddress(e) : nothing}
@@ -283,6 +296,17 @@ export class VolvoCarCard extends LitElement {
   private openActions(ev: Event): void {
     ev.stopPropagation();
     this.actionsOpen = true;
+  }
+
+  /** Click handler for a stat that should open its entity's history/more-info dialog
+   *  instead of the card's own lock/climate actions popup. Falls through to the
+   *  card's own click (the actions popup) when no entity is configured for that stat. */
+  private moreInfoStop(entityId?: string): (ev: Event) => void {
+    return (ev: Event) => {
+      if (!entityId) return;
+      ev.stopPropagation();
+      this.moreInfo(entityId);
+    };
   }
 
   private closeActions(): void {
@@ -694,6 +718,7 @@ export class VolvoCarCard extends LitElement {
     .main-row {
       align-items: flex-start;
       gap: 9px;
+      cursor: pointer;
     }
     .main-value {
       font-size: 51px;
@@ -711,6 +736,7 @@ export class VolvoCarCard extends LitElement {
       align-items: center;
       gap: 4px;
       margin-top: 0px;
+      cursor: pointer;
     }
     .sub-row ha-icon {
       --mdc-icon-size: 20px;
@@ -739,6 +765,7 @@ export class VolvoCarCard extends LitElement {
       color: rgba(255, 255, 255, 0.5);
       margin-top: -7px;
       margin-left: 3px;
+      cursor: pointer;
     }
 
     .controls {
@@ -860,6 +887,7 @@ export class VolvoCarCard extends LitElement {
       font-size: 15px;
       font-weight: 300;
       color: #aaa;
+      cursor: pointer;
     }
 
     .status {
@@ -867,6 +895,7 @@ export class VolvoCarCard extends LitElement {
       left: 13px;
       bottom: 13px;
       z-index: 3;
+      cursor: pointer;
       font-size: 24px;
       font-weight: 300;
       color: #aaa;
