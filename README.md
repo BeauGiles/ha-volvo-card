@@ -278,6 +278,33 @@ labels:            # optional, all have English defaults
   time_left: left
 ```
 
+Set `appHeaderStat: range` to swap which stat is the big number: total range on top, and a
+bare percentage below it — no lightning icon, no "electric" wording. Only affects BEV/ICE in
+`header: app`; hybrids keep the default (they still need the icon/wording to tell electric and
+fuel range apart).
+
+```yaml
+type: custom:volvo-car-card
+header: app
+appHeaderStat: range
+entities:
+  ...
+```
+
+## Card background (optional) — added in this fork
+
+Set `background` to any CSS `background` value (a color, gradient, etc.) to override the card's
+background — e.g. to recreate the Volvo app's dark-blue tint. It's per card instance, so a
+dashboard with more than one `volvo-car-card` (different vehicles, different integrations) can
+style each one differently, or leave the rest on the dashboard theme's default:
+
+```yaml
+type: custom:volvo-car-card
+background: '#141d27'
+entities:
+  ...
+```
+
 ## Controls and tiles (optional) — added in this fork
 
 `controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:
@@ -290,14 +317,17 @@ labels:            # optional, all have English defaults
   switch's real state instead.
 - **Remote start** (`start_engine` / `stop_engine`, with state from `engine_status`). Starting asks for a
   second tap.
-- **"…" menu** (`flash`, `honk`, `honk_flash`).
+- **"…" menu** (`flash`, `honk`, `honk_flash`, `unlock_boot`, `air_purification`).
+  `unlock_boot` works with either an integration's `lock.*` tailgate entity (calls
+  `lock.unlock`) or a momentary `button.*` "unlock trunk" entity — whichever domain you
+  point it at. `air_purification` is a `switch.*` toggle, read and toggled the same way
+  as `climatisation`.
 - **Charge tile**: "Done at 19:58" while charging (needs `charging_time_left`), otherwise
-  "Plugged in" / "Not plugged in". Tapping it opens sliders for `target_soc` /
+  "Plugged in" / "Unplugged". Tapping it opens sliders for `target_soc` /
   `charge_current_limit` when either is configured, otherwise the charging status history.
 - **Climate tile**: running / not running. Tapping it toggles climate.
 
-A button only appears when its entity is configured. The Volvo API has no air-purification
-command, so the app's "Purify air" button is not available.
+A button only appears when its entity is configured.
 
 Tapping any of the header stats (battery/range, electric/fuel sub-line, the status text, the
 charging-time-left text) opens that entity's own history/more-info dialog instead of the
@@ -317,6 +347,8 @@ entities:
   flash: button.volvo_xc60_flash
   honk: button.volvo_xc60_honk
   honk_flash: button.volvo_xc60_honk_flash
+  unlock_boot: lock.volvo_xc60_tailgate_lock              # or a button.* "unlock trunk" entity
+  air_purification: switch.volvo_xc60_air_purification
   target_soc: number.volvo_xc60_target_soc               # slider, under the Charge tile
   charge_current_limit: number.volvo_xc60_charge_current_limit
 labels:
@@ -324,7 +356,7 @@ labels:
   charge_done_at: Gotowe o
   # all labels: start_car, stop_car, more, flash, honk, honk_flash, confirm, charge,
   # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running,
-  # target_soc, charge_current_limit, done
+  # target_soc, charge_current_limit, done, unlock_boot, purify_air
 ```
 
 Slider bounds (`min`/`max`/`step`) come from each `number.*` entity itself — same as HA's own

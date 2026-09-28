@@ -24,7 +24,7 @@ export const DEFAULT_LABELS: TextLabels = {
   charge: "Charge",
   charge_done_at: "Done at",
   charge_plugged_in: "Plugged in",
-  charge_not_plugged_in: "Not plugged in",
+  charge_not_plugged_in: "Unplugged",
   climate_running: "Running",
   climate_not_running: "Not running",
   parked_today: "Last parked today at",
@@ -33,6 +33,8 @@ export const DEFAULT_LABELS: TextLabels = {
   target_soc: "Charge limit",
   charge_current_limit: "Charge current",
   done: "Done",
+  unlock_boot: "Unlock boot",
+  purify_air: "Purify air",
 };
 
 export function label(labels: VolvoCardLabels | undefined, key: keyof TextLabels): string {

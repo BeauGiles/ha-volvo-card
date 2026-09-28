@@ -48,6 +48,13 @@ export interface VolvoCardEntities {
   target_soc?: string;
   /** `number.*` entity for the charge current limit (A). See `target_soc`. */
   charge_current_limit?: string;
+  /** Unlock-boot/tailgate action shown in the "…" menu. Either a `lock.*` entity
+   *  (calls lock.unlock — e.g. ha-volvo-au's tailgate lock) or a momentary `button.*`
+   *  entity (e.g. Polestar's "Unlock trunk"), detected from the entity_id's domain. */
+  unlock_boot?: string;
+  /** Cabin/air purification toggle (`switch.*`), shown in the "…" menu — reads and
+   *  toggles its real on/off state, the same way `climatisation` does. */
+  air_purification?: string;
 }
 
 export interface VolvoCardImages {
@@ -101,6 +108,8 @@ export interface VolvoCardLabels {
   /** Shown instead of "Scheduled" when the charging-status entity's own text says the
    *  session already finished (e.g. ha-volvo-au's "Done", reached at a target below 100%). */
   done?: string;
+  unlock_boot?: string;
+  purify_air?: string;
 }
 
 export interface VolvoCardConfig {
@@ -116,6 +125,15 @@ export interface VolvoCardConfig {
   /** "classic" (default): range-first header. "app": battery-first header like the Volvo Cars app —
    *  a hybrid always shows battery %, electric range and fuel range, also while charging. */
   header?: "classic" | "app";
+  /** In `header: app` mode for a BEV/ICE, swaps which stat is the big number: "battery"
+   *  (default) matches the Volvo app; "range" puts total range first and shows a bare
+   *  percentage below it (no lightning icon, no "electric" wording). No effect on hybrids
+   *  or in `header: classic`. */
+  appHeaderStat?: "battery" | "range";
+  /** Any CSS `background` value (color, gradient, ...) applied to the card itself — e.g. to
+   *  recreate the Volvo app's dark-blue tint for this specific card instance. Unset inherits
+   *  the dashboard theme's card background, same as before. */
+  background?: string;
   /** Adds the Volvo Cars app controls under the car: lock, climate, remote start and a "more"
    *  menu (flash / honk), plus Charge and Climate tiles. Unlock and remote start ask for a
    *  second tap to confirm. */

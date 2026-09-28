@@ -33,7 +33,7 @@ interface HeaderMain {
   unit: string;
 }
 
-type SubIcon = "lightning" | "mdi:gas-station";
+type SubIcon = "lightning" | "mdi:gas-station" | "none";
 
 interface HeaderSub {
   icon: SubIcon;
@@ -91,6 +91,15 @@ export class VolvoCarCard extends LitElement {
     };
   }
 
+  /** In `header: app` mode, whether the big stat is battery % (default, matches the
+   *  Volvo app) or total range — with `appHeaderStat: "range"`, the small stat below
+   *  becomes a bare percentage (no icon, no "electric"/"fuel" wording). BEV/ICE only;
+   *  hybrids keep the default battery-first behavior since they also need the fuel
+   *  sub-line to disambiguate which range is which. */
+  private get rangeFirst(): boolean {
+    return this.appHeader && this.config.appHeaderStat === "range";
+  }
+
   private headerMain(kind: VehicleKind, chargeState: ChargeState): HeaderMain {
     const { entities: e } = this.config;
     const dteBattery = numState(this.hass, e.distance_to_empty_battery) ?? 0;
@@ -99,6 +108,9 @@ export class VolvoCarCard extends LitElement {
 
     if (kind === "ice") {
       return { value: round(dteTank), unit: "km" };
+    }
+    if (this.rangeFirst && kind !== "hybrid") {
+      return { value: round(dteBattery + dteTank), unit: "km" };
     }
     if (chargeState === "scheduled" || this.appHeader) {
       return { value: round(battery), unit: "%" };
@@ -110,6 +122,7 @@ export class VolvoCarCard extends LitElement {
   private headerSub1(kind: VehicleKind, chargeState: ChargeState): HeaderSub | null {
     const { entities: e } = this.config;
     const dteBattery = numState(this.hass, e.distance_to_empty_battery) ?? 0;
+    const battery = numState(this.hass, e.battery) ?? 0;
     const fuelAmount = numState(this.hass, e.fuel_amount);
     const tankCapacity = e.fuel_tank_capacity_l;
 
@@ -127,6 +140,9 @@ export class VolvoCarCard extends LitElement {
     }
 
     // bev
+    if (this.rangeFirst) {
+      return { icon: "none", value: `${round(battery)}%`, label: "" };
+    }
     if (chargeState === "scheduled" || this.appHeader) {
       return { icon: "lightning", value: `${round(dteBattery)} km`, label: label(this.config.labels, "electric") };
     }
@@ -249,12 +265,25 @@ export class VolvoCarCard extends LitElement {
     // Which entity each stat's "more info" (history) should open — kept next to the
     // value that displays it, since both depend on the same kind/chargeState branching.
     const mainEntity =
-      kind === "ice" ? e.distance_to_empty_tank : chargeState === "scheduled" || this.appHeader ? e.battery : e.distance_to_empty_battery;
-    const sub1Entity = sub1 ? (sub1.icon === "lightning" ? e.distance_to_empty_battery : e.fuel_amount) : undefined;
+      kind === "ice"
+        ? e.distance_to_empty_tank
+        : this.rangeFirst && kind !== "hybrid"
+          ? e.distance_to_empty_battery
+          : chargeState === "scheduled" || this.appHeader
+            ? e.battery
+            : e.distance_to_empty_battery;
+    const sub1Entity = !sub1
+      ? undefined
+      : sub1.icon === "lightning"
+        ? e.distance_to_empty_battery
+        : sub1.icon === "none"
+          ? e.battery
+          : e.fuel_amount;
     const statusEntity = chargeState === "idle" ? e.lock : e.charging_status || e.charging_connection_status;
+    const cardStyle = this.config.background ? `background:${this.config.background};` : "";
 
     return html`
-      <ha-card>
+      <ha-card style=${cardStyle}>
         <div class="volvo-card" @click=${this.openActions}>
           ${charging ? this.renderPulse() : nothing}
           <div
@@ -274,9 +303,11 @@ export class VolvoCarCard extends LitElement {
                   <div class="row sub-row" @click=${this.moreInfoStop(sub1Entity)}>
                     ${sub1.icon === "lightning"
                       ? this.renderLightningIcon()
-                      : html`<ha-icon icon=${sub1.icon}></ha-icon>`}
+                      : sub1.icon === "none"
+                        ? nothing
+                        : html`<ha-icon icon=${sub1.icon}></ha-icon>`}
                     <span class="sub-value">${sub1.value}</span>
-                    <span class="sub-label">${sub1.label}</span>
+                    ${sub1.label ? html`<span class="sub-label">${sub1.label}</span>` : nothing}
                   </div>
                 `
               : nothing}
@@ -328,6 +359,26 @@ export class VolvoCarCard extends LitElement {
   private pressButton(entityId?: string): void {
     if (!entityId) return;
     this.hass.callService("button", "press", { entity_id: entityId });
+  }
+
+  /** Dispatches a "…" menu chip by its kind: a momentary press, a switch toggle
+   *  (reads real state), or an unlock — which some integrations expose as a `lock.*`
+   *  entity (call lock.unlock) and others as a momentary `button.*` (press it). */
+  private runExtra(x: { id: string; kind: "press" | "switch" | "unlock" }): void {
+    if (x.kind === "press") {
+      this.pressButton(x.id);
+      return;
+    }
+    if (x.kind === "switch") {
+      const on = getState(this.hass, x.id) === "on";
+      this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: x.id });
+      return;
+    }
+    if (x.id.startsWith("lock.")) {
+      this.hass.callService("lock", "unlock", { entity_id: x.id });
+    } else {
+      this.pressButton(x.id);
+    }
   }
 
   private toggleClimate(): void {
@@ -445,11 +496,13 @@ export class VolvoCarCard extends LitElement {
     const climateOn = this.climateIsOn(e);
     const hasEngine = !!(e.start_engine || e.stop_engine);
     const engineOn = getState(this.hass, e.engine_status) === "on";
-    const extras = [
-      { id: e.flash, text: L("flash") },
-      { id: e.honk, text: L("honk") },
-      { id: e.honk_flash, text: L("honk_flash") },
-    ].filter((x) => !!x.id);
+    const extras: { id: string; text: string; kind: "press" | "switch" | "unlock" }[] = [
+      { id: e.flash, text: L("flash"), kind: "press" },
+      { id: e.honk, text: L("honk"), kind: "press" },
+      { id: e.honk_flash, text: L("honk_flash"), kind: "press" },
+      { id: e.unlock_boot, text: L("unlock_boot"), kind: "unlock" },
+      { id: e.air_purification, text: L("purify_air"), kind: "switch" },
+    ].filter((x): x is { id: string; text: string; kind: "press" | "switch" | "unlock" } => !!x.id);
     const hasChargeSettings = !!(e.target_soc || e.charge_current_limit);
 
     let chargeSub = "";
@@ -513,7 +566,7 @@ export class VolvoCarCard extends LitElement {
       ${hint ? html`<div class="ctl-hint">${hint}</div>` : nothing}
       ${this.moreOpen && extras.length
         ? html`<div class="ctl-more">
-            ${extras.map((x) => html`<button class="chip" @click=${() => this.pressButton(x.id)}>${x.text}</button>`)}
+            ${extras.map((x) => html`<button class="chip" @click=${() => this.runExtra(x)}>${x.text}</button>`)}
           </div>`
         : nothing}
       <div class="tiles">
