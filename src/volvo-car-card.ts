@@ -53,6 +53,9 @@ export class VolvoCarCard extends LitElement {
    *  state so the thumb doesn't jump back to the last-known value between input events
    *  and the service call actually landing. */
   @state() private sliderDraft: Record<string, number> = {};
+  /** Entity ids with a service call currently in flight — drives the brief spinner on a
+   *  quick-control button, confirming a tap actually sent something. */
+  @state() private pendingIds: Set<string> = new Set();
   /** Control waiting for a confirming second tap ("unlock" / "start"), cleared after a few seconds. */
   @state() private armed: string | null = null;
   private armTimer?: number;
@@ -354,16 +357,37 @@ export class VolvoCarCard extends LitElement {
     this.actionsOpen = false;
   }
 
+  /** Marks `key` (an entity_id, almost always) busy while `fn` runs, so a button can show
+   *  a brief spinner confirming the tap actually sent something — HA's callService resolves
+   *  once the call reaches the backend, not once the car has acted on it, so this confirms
+   *  "sent", not "done". Padded to a minimum visible duration so a near-instant call (or one
+   *  fired locally with no promise) doesn't just flicker. */
+  private async withPending(key: string, fn: () => unknown): Promise<void> {
+    const start = new Set(this.pendingIds);
+    start.add(key);
+    this.pendingIds = start;
+    const startedAt = Date.now();
+    try {
+      await fn();
+    } finally {
+      const remaining = 450 - (Date.now() - startedAt);
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+      const done = new Set(this.pendingIds);
+      done.delete(key);
+      this.pendingIds = done;
+    }
+  }
+
   private callLock(lock: boolean): void {
     const entityId = this.config.entities.lock;
     if (!entityId) return;
-    this.hass.callService("lock", lock ? "lock" : "unlock", { entity_id: entityId });
+    void this.withPending(entityId, () => this.hass.callService("lock", lock ? "lock" : "unlock", { entity_id: entityId }));
     this.closeActions();
   }
 
   private pressButton(entityId?: string): void {
     if (!entityId) return;
-    this.hass.callService("button", "press", { entity_id: entityId });
+    void this.withPending(entityId, () => this.hass.callService("button", "press", { entity_id: entityId }));
   }
 
   /** Dispatches a "…" menu chip by its kind: a momentary press, a switch toggle
@@ -376,11 +400,11 @@ export class VolvoCarCard extends LitElement {
     }
     if (x.kind === "switch") {
       const on = getState(this.hass, x.id) === "on";
-      this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: x.id });
+      void this.withPending(x.id, () => this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: x.id }));
       return;
     }
     if (x.id.startsWith("lock.")) {
-      this.hass.callService("lock", "unlock", { entity_id: x.id });
+      void this.withPending(x.id, () => this.hass.callService("lock", "unlock", { entity_id: x.id }));
     } else {
       this.pressButton(x.id);
     }
@@ -390,7 +414,7 @@ export class VolvoCarCard extends LitElement {
     const { start_climatisation, stop_climatisation, climatisation } = this.config.entities;
     if (climatisation) {
       const on = getState(this.hass, climatisation) === "on";
-      this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: climatisation });
+      void this.withPending(climatisation, () => this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: climatisation }));
       return;
     }
     this.pressButton(this.climateOn ? stop_climatisation : start_climatisation);
@@ -487,7 +511,7 @@ export class VolvoCarCard extends LitElement {
     if (isLocked && !this.arm("unlock")) return; // unlocking needs a confirming tap
     this.disarm();
     const entityId = this.config.entities.lock;
-    if (entityId) this.hass.callService("lock", isLocked ? "unlock" : "lock", { entity_id: entityId });
+    if (entityId) void this.withPending(entityId, () => this.hass.callService("lock", isLocked ? "unlock" : "lock", { entity_id: entityId }));
   }
 
   private onEngineControl(running: boolean): void {
@@ -513,6 +537,10 @@ export class VolvoCarCard extends LitElement {
     const climateOn = this.climateIsOn(e);
     const hasEngine = !!(e.start_engine || e.stop_engine);
     const engineOn = getState(this.hass, e.engine_status) === "on";
+    const isPending = (...ids: (string | undefined)[]) => ids.some((id) => id && this.pendingIds.has(id));
+    const lockPending = isPending(e.lock);
+    const climatePending = isPending(e.climatisation, e.start_climatisation, e.stop_climatisation);
+    const enginePending = isPending(e.start_engine, e.stop_engine);
     const extras: { id: string; text: string; kind: "press" | "switch" | "unlock" }[] = [
       { id: e.flash, text: L("flash"), kind: "press" },
       { id: e.honk, text: L("honk"), kind: "press" },
@@ -547,7 +575,7 @@ export class VolvoCarCard extends LitElement {
       <div class="controls">
         ${e.lock
           ? html`<button
-              class="ctl ${this.armed === "unlock" ? "armed" : ""}"
+              class="ctl ${this.armed === "unlock" ? "armed" : ""} ${lockPending ? "pending" : ""} ${!isLocked ? "unlocked-glow" : ""}"
               title=${isLocked ? L("unlock") : L("lock")}
               aria-label=${isLocked ? L("unlock") : L("lock")}
               @click=${() => this.onLockControl(isLocked)}
@@ -557,7 +585,7 @@ export class VolvoCarCard extends LitElement {
           : nothing}
         ${hasFan
           ? html`<button
-              class="ctl ${climateOn ? "on" : ""} ${this.armed === "climate" ? "armed" : ""}"
+              class="ctl ${climateOn ? "on" : ""} ${this.armed === "climate" ? "armed" : ""} ${climatePending ? "pending" : ""}"
               title=${L("climate")}
               aria-label=${L("climate")}
               @click=${() => this.onClimateControl(climateOn)}
@@ -567,7 +595,7 @@ export class VolvoCarCard extends LitElement {
           : nothing}
         ${hasEngine
           ? html`<button
-              class="ctl ${engineOn ? "on" : ""} ${this.armed === "start" ? "armed" : ""}"
+              class="ctl ${engineOn ? "on" : ""} ${this.armed === "start" ? "armed" : ""} ${enginePending ? "pending" : ""}"
               title=${engineOn ? L("stop_car") : L("start_car")}
               aria-label=${engineOn ? L("stop_car") : L("start_car")}
               @click=${() => this.onEngineControl(engineOn)}
@@ -589,7 +617,12 @@ export class VolvoCarCard extends LitElement {
       ${hint ? html`<div class="ctl-hint">${hint}</div>` : nothing}
       ${this.moreOpen && extras.length
         ? html`<div class="ctl-more">
-            ${extras.map((x) => html`<button class="chip" @click=${() => this.runExtra(x)}>${x.text}</button>`)}
+            ${extras.map(
+              (x) =>
+                html`<button class="chip ${this.pendingIds.has(x.id) ? "pending" : ""}" @click=${() => this.runExtra(x)}>
+                  ${x.text}
+                </button>`
+            )}
           </div>`
         : nothing}
       <div class="tiles">
@@ -607,7 +640,7 @@ export class VolvoCarCard extends LitElement {
             </div>`
           : nothing}
         ${hasFan
-          ? html`<div class="tile" @click=${() => this.onClimateControl(climateOn)}>
+          ? html`<div class="tile ${climateOn ? "on" : ""}" @click=${() => this.onClimateControl(climateOn)}>
               ${this.renderStrokeIcon(FAN_ICON_INNER)}
               <div class="tile-title">${L("climate")}</div>
               <div class="tile-sub">${climateOn ? L("climate_running") : L("climate_not_running")}</div>
@@ -925,6 +958,7 @@ export class VolvoCarCard extends LitElement {
       font-family: "Hedvig Letters Sans", sans-serif;
     }
     .ctl {
+      position: relative;
       width: 52px;
       height: 52px;
       border-radius: 50%;
@@ -940,6 +974,7 @@ export class VolvoCarCard extends LitElement {
     .ctl .icon-svg-stroke {
       width: 28px;
       height: 28px;
+      transition: opacity 0.15s;
     }
     .ctl:hover {
       background: rgba(127, 127, 127, 0.2);
@@ -950,6 +985,46 @@ export class VolvoCarCard extends LitElement {
     .ctl.armed {
       background: rgba(255, 170, 0, 0.25);
       color: #ffb020;
+    }
+    /* Brief spinner confirming a tap actually sent a service call — see withPending(). */
+    .ctl.pending {
+      pointer-events: none;
+    }
+    .ctl.pending .icon-svg-stroke {
+      opacity: 0.35;
+    }
+    .ctl.pending::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-right-color: currentColor;
+      opacity: 0.85;
+      animation: ctlSpin 0.6s linear infinite;
+    }
+    @keyframes ctlSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    /* Persistent visual confirmation that the car is unlocked — a slow green pulse,
+       distinct from the plain accent-color ".on" state used for climate/engine. */
+    .ctl.unlocked-glow {
+      color: #2ecc71;
+    }
+    .ctl.unlocked-glow .icon-svg-stroke {
+      animation: unlockGlow 2.2s ease-in-out infinite;
+    }
+    @keyframes unlockGlow {
+      0%,
+      100% {
+        filter: drop-shadow(0 0 2px rgba(46, 204, 113, 0.5));
+      }
+      50% {
+        filter: drop-shadow(0 0 7px rgba(46, 204, 113, 0.95));
+      }
     }
     .ctl-hint {
       text-align: center;
@@ -975,6 +1050,19 @@ export class VolvoCarCard extends LitElement {
       font-size: 13px;
       cursor: pointer;
     }
+    .chip.pending {
+      pointer-events: none;
+      animation: chipPulse 0.8s ease-in-out infinite;
+    }
+    @keyframes chipPulse {
+      0%,
+      100% {
+        opacity: 0.55;
+      }
+      50% {
+        opacity: 0.9;
+      }
+    }
     .tiles {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -991,6 +1079,10 @@ export class VolvoCarCard extends LitElement {
     .tile .icon-svg-stroke {
       width: 26px;
       height: 26px;
+    }
+    .tile.on .icon-svg-stroke,
+    .tile.on .tile-title {
+      color: var(--volvo-accent-color);
     }
     .tile-title {
       font-size: 19px;

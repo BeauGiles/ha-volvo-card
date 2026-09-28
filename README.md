@@ -335,9 +335,17 @@ colorful background.
 - **Charge tile**: "Done at 19:58" while charging (needs `charging_time_left`), otherwise
   "Plugged in" / "Unplugged". Tapping it opens sliders for `target_soc` /
   `charge_current_limit` when either is configured, otherwise the charging status history.
-- **Climate tile**: running / not running. Tapping it toggles climate.
+- **Climate tile**: running / not running, with the icon and title in the accent color while
+  running — matching the fan button's own "on" highlight, not just the text.
 
 A button only appears when its entity is configured.
+
+Every control shows a brief spinner while its service call is in flight, confirming the tap
+actually sent something (HA's `callService` resolves once the call reaches the backend, not once
+the car has acted on it, so this confirms "sent", not "done" — there's no reliable way to tell the
+difference from here). The lock button also carries a slow green pulse whenever the car is
+unlocked, on top of the plain accent-color highlight climate/engine use for their own "on" state —
+unlocked is the one state worth a more insistent visual than the rest.
 
 Tapping any of the header stats (battery/range, electric/fuel sub-line, the status text, the
 charging-time-left text) opens that entity's own history/more-info dialog instead of the
