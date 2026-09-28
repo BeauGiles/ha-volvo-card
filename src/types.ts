@@ -138,10 +138,14 @@ export interface VolvoCardConfig {
    *  the dashboard theme's card background, same as before.
    *
    *  Pass an object to use a different value per HA theme mode, e.g.
-   *  `{ dark: "#141d27", light: "#d9e2e8" }`. A mode left out of the object falls back to
-   *  the theme's own card background. Overlay text color always follows the current HA
-   *  theme mode regardless of this setting — white in dark mode, black in light mode, same
-   *  as the official apps — so pick a light-suited color for `light` if you set one. */
+   *  `{ dark: "#141d27", light: "#d9e2e8" }` (Fjord Blue), or `{ dark: "#3a342a", light:
+   *  "#e3dbcb" }` (Dune) for a color that's naturally light rather than dark. A mode left
+   *  out of the object falls back to the theme's own card background. Overlay text color
+   *  automatically follows whichever background is actually in effect — dark text over a
+   *  light `#rrggbb`/`#rgb` value, white text otherwise — so a light brand color works in
+   *  dark HA-theme mode too, the same as a dark one works in light mode. A gradient or other
+   *  non-hex CSS value falls back to following the theme mode instead, since its brightness
+   *  can't be measured. */
   background?: string | { dark?: string; light?: string };
   /** Overrides the card's accent color (default teal) — used for the climate/engine "on"
    *  state, the Charge/Climate tile "on" highlight, and the charge-settings slider thumbs.

@@ -256,6 +256,19 @@ export class VolvoCarCard extends LitElement {
     return isDark ? bg.dark : bg.light;
   }
 
+  /** Whether a `#rgb`/`#rrggbb` color reads as "light" (needs dark overlay text), or null if
+   *  it isn't a plain hex color (a gradient, `rgb(...)`, a named color, ...) — those fall back
+   *  to the theme mode instead, since there's no simple way to get their luminance. */
+  private static isLightHexColor(color: string): boolean | null {
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+    if (!m) return null;
+    const hex = m[1].length === 3 ? m[1].split("").map((c) => c + c).join("") : m[1];
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+  }
+
   protected render(): TemplateResult {
     if (!this.hass || !this.config) return html``;
 
@@ -286,12 +299,13 @@ export class VolvoCarCard extends LitElement {
     const isDark = this.hass.themes?.darkMode ?? true;
     const cardBackground = this.effectiveBackground(isDark);
     // The car photo itself is mostly transparent outside the vehicle's silhouette (see
-    // carImageStyle), so text legibility depends on the theme, not the photo: dark mode
-    // reads white text (matching a dark theme surface, or a dark `background` override),
-    // light mode reads plain black/dark-grey text instead — same as the official apps,
-    // which keep black text over their light-mode background too. A `background` override
-    // doesn't change this; pick a light-suited color for `background.light` if you set one.
-    const overlayClass = isDark ? "" : "theme-text";
+    // carImageStyle), so text legibility actually depends on the effective background, not
+    // the photo. A configured `background` can go either way — a dark tint in light mode
+    // (Fjord Blue) or a light one in dark mode (Dune) — so read ITS brightness when it's a
+    // plain hex color; only fall back to the theme mode when there's no background override,
+    // or it's some other CSS value (gradient, rgb(), a named color, ...) this can't measure.
+    const bgIsLight = cardBackground ? VolvoCarCard.isLightHexColor(cardBackground) : null;
+    const overlayClass = (bgIsLight ?? !isDark) ? "theme-text" : "";
 
     // Which entity each stat's "more info" (history) should open — kept next to the
     // value that displays it, since both depend on the same kind/chargeState branching.

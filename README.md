@@ -316,17 +316,28 @@ own tiles. The controls bar needs no separate setting: it's a translucent overla
 itself automatically from whatever `background` sits behind it. Status text over the photo
 already carries a drop shadow for legibility against a colorful background.
 
-Overlay text color always follows your current HA theme mode — white in dark mode, black in
-light mode — regardless of whether `background` is set, the same way the official apps keep
-black text over their own light-mode background. So a single dark color like `#141d27` looks
-right in dark mode but needs a lighter one in light mode; pass an object instead of a plain
-string to set both (recreating the official app's light-mode blue-grey, for example):
+Overlay text color automatically follows whichever background is actually in effect: dark text
+over a light `#rrggbb`/`#rgb` color, white text otherwise (a gradient or other non-hex value
+falls back to following the HA theme mode instead, since its brightness can't be measured). So
+a manufacturer color that's naturally dark in one theme mode and naturally light in the other —
+Fjord Blue vs. Dune, say — reads correctly either way with no extra config. A single color
+applies to both modes; pass an object instead to use a different one per mode (e.g. a lighter
+tint of the same color in light mode, like the official app's own blue-grey):
 
 ```yaml
 type: custom:volvo-car-card
 background:
-  dark: '#141d27'
-  light: '#d9e2e8'
+  dark: '#141d27'    # Fjord Blue, dark mode
+  light: '#d9e2e8'   # a lighter tint for light mode
+entities:
+  ...
+```
+
+```yaml
+type: custom:volvo-car-card
+background:
+  dark: '#3a342a'    # Dune, darkened for dark mode
+  light: '#e3dbcb'   # Dune as its actual light color
 entities:
   ...
 ```
