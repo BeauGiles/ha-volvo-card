@@ -359,6 +359,10 @@ difference from here). The lock button also carries a slow green pulse whenever 
 unlocked, on top of the plain accent-color highlight climate/engine use for their own "on" state —
 unlocked is the one state worth a more insistent visual than the rest.
 
+The climate/engine buttons' "on" state is a filled accent-color disc (not just a recolored icon),
+matching the official app; the fan icon also spins continuously while climate is running, on both
+the control-bar button and the Climate tile.
+
 Tapping any of the header stats (battery/range, electric/fuel sub-line, the status text, the
 charging-time-left text) opens that entity's own history/more-info dialog instead of the
 lock/climate popup — only the car photo itself opens the popup.

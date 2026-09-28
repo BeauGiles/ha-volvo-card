@@ -121,7 +121,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
               aria-label=${o("climate")}
               @click=${()=>this.onClimateControl(a)}
             >
-              ${this.renderStrokeIcon(wt)}
+              ${this.renderStrokeIcon(wt,a?"spin":"")}
             </button>`:J}
         ${l?W`<button
               class="ctl ${c?"on":""} ${"start"===this.armed?"armed":""} ${u?"pending":""}"
@@ -156,7 +156,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
               <div class="tile-sub">${f}</div>
             </div>`:J}
         ${r?W`<div class="tile ${a?"on":""}" @click=${()=>this.onClimateControl(a)}>
-              ${this.renderStrokeIcon(wt)}
+              ${this.renderStrokeIcon(wt,a?"spin":"")}
               <div class="tile-title">${o("climate")}</div>
               <div class="tile-sub">${o(a?"climate_running":"climate_not_running")}</div>
             </div>`:J}
@@ -198,8 +198,8 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
       </div>
     `}renderLightningIcon(){return W`<svg class="icon-svg" viewBox="0 0 24 24">
       <path fill="currentColor" d=${"M13.133 2.379a1 1 0 0 1 1.77.785L13.848 9.5h3.819a1 1 0 0 1 .784 1.621l-7.917 10a1 1 0 0 1-1.77-.785L9.819 14H6a1 1 0 0 1-.783-1.621z"}></path>
-    </svg>`}renderStrokeIcon(t){return W`<svg
-      class="icon-svg-stroke"
+    </svg>`}renderStrokeIcon(t,e=""){return W`<svg
+      class="icon-svg-stroke ${e}"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -418,8 +418,23 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
     .ctl:hover {
       background: rgba(127, 127, 127, 0.2);
     }
+    /* Filled disc for the active state, like the official app's climate button — not just a
+       recolored icon. */
     .ctl.on {
-      color: var(--volvo-accent-color);
+      background: var(--volvo-accent-color);
+      color: white;
+    }
+    .ctl.on:hover {
+      background: var(--volvo-accent-color);
+    }
+    .icon-svg-stroke.spin {
+      transform-origin: center;
+      animation: fanSpin 1.4s linear infinite;
+    }
+    @keyframes fanSpin {
+      to {
+        transform: rotate(360deg);
+      }
     }
     .ctl.armed {
       background: rgba(255, 170, 0, 0.25);

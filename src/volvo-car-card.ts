@@ -592,7 +592,7 @@ export class VolvoCarCard extends LitElement {
               aria-label=${L("climate")}
               @click=${() => this.onClimateControl(climateOn)}
             >
-              ${this.renderStrokeIcon(FAN_ICON_INNER)}
+              ${this.renderStrokeIcon(FAN_ICON_INNER, climateOn ? "spin" : "")}
             </button>`
           : nothing}
         ${hasEngine
@@ -643,7 +643,7 @@ export class VolvoCarCard extends LitElement {
           : nothing}
         ${hasFan
           ? html`<div class="tile ${climateOn ? "on" : ""}" @click=${() => this.onClimateControl(climateOn)}>
-              ${this.renderStrokeIcon(FAN_ICON_INNER)}
+              ${this.renderStrokeIcon(FAN_ICON_INNER, climateOn ? "spin" : "")}
               <div class="tile-title">${L("climate")}</div>
               <div class="tile-sub">${climateOn ? L("climate_running") : L("climate_not_running")}</div>
             </div>`
@@ -747,9 +747,9 @@ export class VolvoCarCard extends LitElement {
     </svg>`;
   }
 
-  private renderStrokeIcon(inner: string): TemplateResult {
+  private renderStrokeIcon(inner: string, extraClass = ""): TemplateResult {
     return html`<svg
-      class="icon-svg-stroke"
+      class="icon-svg-stroke ${extraClass}"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -981,8 +981,23 @@ export class VolvoCarCard extends LitElement {
     .ctl:hover {
       background: rgba(127, 127, 127, 0.2);
     }
+    /* Filled disc for the active state, like the official app's climate button — not just a
+       recolored icon. */
     .ctl.on {
-      color: var(--volvo-accent-color);
+      background: var(--volvo-accent-color);
+      color: white;
+    }
+    .ctl.on:hover {
+      background: var(--volvo-accent-color);
+    }
+    .icon-svg-stroke.spin {
+      transform-origin: center;
+      animation: fanSpin 1.4s linear infinite;
+    }
+    @keyframes fanSpin {
+      to {
+        transform: rotate(360deg);
+      }
     }
     .ctl.armed {
       background: rgba(255, 170, 0, 0.25);
