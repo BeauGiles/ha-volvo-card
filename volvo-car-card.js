@@ -58,8 +58,8 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
             volvo-car-card: no battery or fuel entities configured — nothing to show.
           </div>
         </ha-card>
-      `;const s=function(t,e,i){if("ice"===i)return"idle";if(!qt(t,e))return"idle";if(At(t,e))return"charging";const s=(vt(t,e.charging_status)||"").toLowerCase();return/\bdone\b|complete|finished/.test(s)?"done":/\bidle\b/.test(s)?"idle":"scheduled"}(this.hass,t,i),o="ice"!==i&&qt(this.hass,t),n="ice"!==i&&At(this.hass,t),r=this.headerMain(i,s),a=this.headerSub1(i,s),l=this.headerSub2(i,s),c=function(t,e,i,s){if("ice"===s){const i="home"===vt(t,e.location),s="locked"===vt(t,e.lock);return i&&!s?"unlocked":""}const o="home"===vt(t,e.location),n="locked"===vt(t,e.lock),r=xt(t,e.battery)??0;return o&&!n?"unlocked":"scheduled"===i?r>=100&&n?"locked":"scheduled":"charging"===i?"charging":n?"locked":""}(this.hass,t,s,i),h=c?It(this.config.labels,c):"",d="charging"===s?this.chargingTimeLeft():null,p="charging"===s?this.chargingPower():null,{style:u,hasImage:g}=this.carImageStyle(o),m=this.hass.themes?.darkMode??!0,f=this.effectiveBackground(m),b=g||f||m?"":"theme-text",v="ice"===i?t.distance_to_empty_tank:this.rangeFirst&&"hybrid"!==i?t.distance_to_empty_battery:"scheduled"===s||this.appHeader?t.battery:t.distance_to_empty_battery,y=a?"lightning"===a.icon?t.distance_to_empty_battery:"none"===a.icon?t.battery:t.fuel_amount:void 0,x="idle"===s||"done"===s?t.lock:t.charging_status||t.charging_connection_status,k=(f?`background:${f};`:"")+(this.config.accentColor?`--volvo-accent-color:${this.config.accentColor};`:"");return W`
-      <ha-card style=${k}>
+      `;const s=function(t,e,i){if("ice"===i)return"idle";if(!qt(t,e))return"idle";if(At(t,e))return"charging";const s=(vt(t,e.charging_status)||"").toLowerCase();return/\bdone\b|complete|finished/.test(s)?"done":/\bidle\b/.test(s)?"idle":"scheduled"}(this.hass,t,i),o="ice"!==i&&qt(this.hass,t),n="ice"!==i&&At(this.hass,t),r=this.headerMain(i,s),a=this.headerSub1(i,s),l=this.headerSub2(i,s),c=function(t,e,i,s){if("ice"===s){const i="home"===vt(t,e.location),s="locked"===vt(t,e.lock);return i&&!s?"unlocked":""}const o="home"===vt(t,e.location),n="locked"===vt(t,e.lock),r=xt(t,e.battery)??0;return o&&!n?"unlocked":"scheduled"===i?r>=100&&n?"locked":"scheduled":"charging"===i?"charging":n?"locked":""}(this.hass,t,s,i),h=c?It(this.config.labels,c):"",d="charging"===s?this.chargingTimeLeft():null,p="charging"===s?this.chargingPower():null,{style:u}=this.carImageStyle(o),g=this.hass.themes?.darkMode??!0,m=this.effectiveBackground(g),f=g?"":"theme-text",b="ice"===i?t.distance_to_empty_tank:this.rangeFirst&&"hybrid"!==i?t.distance_to_empty_battery:"scheduled"===s||this.appHeader?t.battery:t.distance_to_empty_battery,v=a?"lightning"===a.icon?t.distance_to_empty_battery:"none"===a.icon?t.battery:t.fuel_amount:void 0,y="idle"===s||"done"===s?t.lock:t.charging_status||t.charging_connection_status,x=(m?`background:${m};`:"")+(this.config.accentColor?`--volvo-accent-color:${this.config.accentColor};`:"");return W`
+      <ha-card style=${x}>
         <div class="volvo-card" @click=${this.openActions}>
           ${n?this.renderPulse():J}
           <div
@@ -67,15 +67,15 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
             style=${`background:${u.background};margin-left:${u.marginLeft};margin-top:${u.marginTop};margin-bottom:${u.marginBottom};`}
           ></div>
           ${o?this.renderCable():J}
-          <div class="header ${b}">
+          <div class="header ${f}">
             ${e?W`<div class="vehicle-name">${e}</div>`:J}
-            <div class="row main-row" @click=${this.moreInfoStop(v)}>
+            <div class="row main-row" @click=${this.moreInfoStop(b)}>
               <span class="main-value"
                 >${r.value}<span class="main-unit"> ${r.unit}</span></span
               >
             </div>
             ${a?W`
-                  <div class="row sub-row" @click=${this.moreInfoStop(y)}>
+                  <div class="row sub-row" @click=${this.moreInfoStop(v)}>
                     ${"lightning"===a.icon?this.renderLightningIcon():"none"===a.icon?J:W`<ha-icon icon=${a.icon}></ha-icon>`}
                     <span class="sub-value ${"none"===a.icon?"sub-value-plain":""}">${a.value}</span>
                     ${a.label?W`<span class="sub-label">${a.label}</span>`:J}
@@ -83,16 +83,16 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
                 `:J}
             ${l?W`<div class="row sub-row-2" @click=${this.moreInfoStop(t.distance_to_empty_tank)}>${l}</div>`:J}
           </div>
-          ${h?W`<div class="status ${b}">
-                <span @click=${this.moreInfoStop(x)}>${h}</span>
+          ${h?W`<div class="status ${f}">
+                <span @click=${this.moreInfoStop(y)}>${h}</span>
                 ${p?W`<span @click=${this.moreInfoStop(t.charging_power)}> · ${p}</span>`:J}
               </div>`:J}
-          ${d?W`<div class="status-right ${b}" @click=${this.moreInfoStop(t.charging_time_left)}>${d}</div>`:J}
+          ${d?W`<div class="status-right ${f}" @click=${this.moreInfoStop(t.charging_time_left)}>${d}</div>`:J}
         </div>
         ${this.config.controls?this.renderControls(t,i,s,o):J}
         ${t.location_address?this.renderAddress(t):J}
       </ha-card>
-      ${this.actionsOpen?this.renderActionsDialog(t,m):J}
+      ${this.actionsOpen?this.renderActionsDialog(t,g):J}
     `}openActions(t){t.stopPropagation(),this.actionsOpen=!0}moreInfoStop(t){return e=>{t&&(e.stopPropagation(),this.moreInfo(t))}}closeActions(){this.actionsOpen=!1}async withPending(t,e){const i=new Set(this.pendingIds);i.add(t),this.pendingIds=i;const s=Date.now();try{await e()}finally{const e=450-(Date.now()-s);e>0&&await new Promise(t=>setTimeout(t,e));const i=new Set(this.pendingIds);i.delete(t),this.pendingIds=i}}callLock(t){const e=this.config.entities.lock;e&&(this.withPending(e,()=>this.hass.callService("lock",t?"lock":"unlock",{entity_id:e})),this.closeActions())}pressButton(t){t&&this.withPending(t,()=>this.hass.callService("button","press",{entity_id:t}))}runExtra(t){if("press"!==t.kind){if("switch"===t.kind){const e="on"===vt(this.hass,t.id);return void this.withPending(t.id,()=>this.hass.callService("switch",e?"turn_off":"turn_on",{entity_id:t.id}))}t.id.startsWith("lock.")?this.withPending(t.id,()=>this.hass.callService("lock","unlock",{entity_id:t.id})):this.pressButton(t.id)}else this.pressButton(t.id)}doToggleClimate(){const{start_climatisation:t,stop_climatisation:e,climatisation:i}=this.config.entities;if(i){const t="on"===vt(this.hass,i);return void this.withPending(i,()=>this.hass.callService("switch",t?"turn_off":"turn_on",{entity_id:i}))}this.pressButton(this.climateOn?e:t),this.climateOn=!this.climateOn}onClimateControl(t){if(t)return this.disarm(),void this.doToggleClimate();this.arm("climate")&&this.doToggleClimate()}climateIsOn(t){return t.climatisation?"on"===vt(this.hass,t.climatisation):this.climateOn}arm(t){return this.armed===t?(this.disarm(),!0):(this.armed=t,window.clearTimeout(this.armTimer),this.armTimer=window.setTimeout(()=>this.disarm(),4e3),!1)}disarm(){window.clearTimeout(this.armTimer),this.armed=null}moreInfo(t){t&&this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:t},bubbles:!0,composed:!0}))}numberAttrs(t){if(!t)return null;const e=this.hass.states[t];if(!e)return null;const i=this.sliderDraft[t]??parseFloat(e.state);if(Number.isNaN(i))return null;const s=e.attributes||{};return{value:i,min:s.min??0,max:s.max??100,step:s.step??1}}onSliderInput(t,e){const i=Number(e.target.value);this.sliderDraft={...this.sliderDraft,[t]:i}}onSliderChange(t,e){const i=Number(e.target.value);this.hass.callService("number","set_value",{entity_id:t,value:i})}renderSliderRow(t,e,i){const s=this.numberAttrs(t);return t&&s?W`
       <div class="ctl-slider-row">
         <div class="ctl-slider-label">${e}</div>

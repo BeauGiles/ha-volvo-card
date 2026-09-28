@@ -316,22 +316,23 @@ own tiles. The controls bar needs no separate setting: it's a translucent overla
 itself automatically from whatever `background` sits behind it. Status text over the photo
 already carries a drop shadow for legibility against a colorful background.
 
-The card assumes a configured `background` is dark enough for its white overlay text, and uses
-white text whenever it's set — regardless of whether your HA profile is in dark or light mode.
-If you want a different color per mode (or a lighter one that needs the theme's own dark text
-instead), pass an object instead of a plain string:
+Overlay text color always follows your current HA theme mode — white in dark mode, black in
+light mode — regardless of whether `background` is set, the same way the official apps keep
+black text over their own light-mode background. So a single dark color like `#141d27` looks
+right in dark mode but needs a lighter one in light mode; pass an object instead of a plain
+string to set both (recreating the official app's light-mode blue-grey, for example):
 
 ```yaml
 type: custom:volvo-car-card
 background:
   dark: '#141d27'
-  # light: unset — falls back to the theme's own card background + dark text in light mode
+  light: '#d9e2e8'
 entities:
   ...
 ```
 
-A mode left out of the object falls back to the dashboard theme's default card background (and
-theme-appropriate dark text), the same as leaving `background` unset entirely.
+A mode left out of the object falls back to the dashboard theme's default card background,
+the same as leaving `background` unset entirely.
 
 For a manufacturer's own bright accent color (e.g. Polestar's `#fe7c0c`), use `accentColor`
 instead of `background` — that's how their own apps actually use it: as a highlight on an

@@ -282,14 +282,16 @@ export class VolvoCarCard extends LitElement {
     const status = sKey ? label(this.config.labels, sKey) : "";
     const timeLeft = chargeState === "charging" ? this.chargingTimeLeft() : null;
     const powerText = chargeState === "charging" ? this.chargingPower() : null;
-    const { style: imgStyle, hasImage } = this.carImageStyle(connected);
+    const { style: imgStyle } = this.carImageStyle(connected);
     const isDark = this.hass.themes?.darkMode ?? true;
     const cardBackground = this.effectiveBackground(isDark);
-    // Text over the car photo, or over an explicit `background` override, stays white
-    // regardless of theme (both are assumed dark enough to read white text). Otherwise
-    // the card is sitting on the theme's own surface color, so in light mode fall back
-    // to plain black/dark-grey text instead of white-on-light.
-    const overlayClass = hasImage || cardBackground || isDark ? "" : "theme-text";
+    // The car photo itself is mostly transparent outside the vehicle's silhouette (see
+    // carImageStyle), so text legibility depends on the theme, not the photo: dark mode
+    // reads white text (matching a dark theme surface, or a dark `background` override),
+    // light mode reads plain black/dark-grey text instead — same as the official apps,
+    // which keep black text over their light-mode background too. A `background` override
+    // doesn't change this; pick a light-suited color for `background.light` if you set one.
+    const overlayClass = isDark ? "" : "theme-text";
 
     // Which entity each stat's "more info" (history) should open — kept next to the
     // value that displays it, since both depend on the same kind/chargeState branching.
