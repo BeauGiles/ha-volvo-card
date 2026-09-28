@@ -314,7 +314,8 @@ entities:
   that expose it as a single switch — see [Using ha-volvo-au](#using-ha-volvo-au-instead-of-the-official-volvo-integration)).
   The official integration has no climate-status entity, so without `climatisation` the card tracks
   on/off itself, the same way the existing tap dialog does; with `climatisation` it reads the
-  switch's real state instead.
+  switch's real state instead. Starting it (like unlock and remote start) asks for a second tap;
+  turning it off doesn't.
 - **Remote start** (`start_engine` / `stop_engine`, with state from `engine_status`). Starting asks for a
   second tap.
 - **"…" menu** (`flash`, `honk`, `honk_flash`, `unlock_boot`, `air_purification`).

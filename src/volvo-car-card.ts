@@ -280,7 +280,13 @@ export class VolvoCarCard extends LitElement {
           ? e.battery
           : e.fuel_amount;
     const statusEntity = chargeState === "idle" ? e.lock : e.charging_status || e.charging_connection_status;
-    const cardStyle = this.config.background ? `background:${this.config.background};` : "";
+    // The tiles/charge-settings panels paint their own solid background from the
+    // --ha-card-background/--card-background-color theme vars (so they read correctly
+    // against any theme) — override those too, or they'd stay the theme's default color
+    // and show a seam against a custom `background` here.
+    const cardStyle = this.config.background
+      ? `background:${this.config.background}; --ha-card-background:${this.config.background}; --card-background-color:${this.config.background};`
+      : "";
 
     return html`
       <ha-card style=${cardStyle}>
@@ -306,7 +312,7 @@ export class VolvoCarCard extends LitElement {
                       : sub1.icon === "none"
                         ? nothing
                         : html`<ha-icon icon=${sub1.icon}></ha-icon>`}
-                    <span class="sub-value">${sub1.value}</span>
+                    <span class="sub-value ${sub1.icon === "none" ? "sub-value-plain" : ""}">${sub1.value}</span>
                     ${sub1.label ? html`<span class="sub-label">${sub1.label}</span>` : nothing}
                   </div>
                 `
@@ -381,7 +387,7 @@ export class VolvoCarCard extends LitElement {
     }
   }
 
-  private toggleClimate(): void {
+  private doToggleClimate(): void {
     const { start_climatisation, stop_climatisation, climatisation } = this.config.entities;
     if (climatisation) {
       const on = getState(this.hass, climatisation) === "on";
@@ -390,6 +396,18 @@ export class VolvoCarCard extends LitElement {
     }
     this.pressButton(this.climateOn ? stop_climatisation : start_climatisation);
     this.climateOn = !this.climateOn;
+  }
+
+  /** Starting climate (remotely running the AC/heater) asks for a confirming second tap,
+   *  the same way unlock and remote start do; turning it off needs no confirmation. */
+  private onClimateControl(isOn: boolean): void {
+    if (isOn) {
+      this.disarm();
+      this.doToggleClimate();
+      return;
+    }
+    if (!this.arm("climate")) return;
+    this.doToggleClimate();
   }
 
   /** Real switch state when `climatisation` is configured; otherwise the card's own
@@ -518,7 +536,13 @@ export class VolvoCarCard extends LitElement {
     }
 
     const hint =
-      this.armed === "unlock" ? `${L("confirm")}: ${L("unlock")}` : this.armed === "start" ? `${L("confirm")}: ${L("start_car")}` : "";
+      this.armed === "unlock"
+        ? `${L("confirm")}: ${L("unlock")}`
+        : this.armed === "start"
+          ? `${L("confirm")}: ${L("start_car")}`
+          : this.armed === "climate"
+            ? `${L("confirm")}: ${L("climate")}`
+            : "";
 
     return html`
       <div class="controls">
@@ -534,10 +558,10 @@ export class VolvoCarCard extends LitElement {
           : nothing}
         ${hasFan
           ? html`<button
-              class="ctl ${climateOn ? "on" : ""}"
+              class="ctl ${climateOn ? "on" : ""} ${this.armed === "climate" ? "armed" : ""}"
               title=${L("climate")}
               aria-label=${L("climate")}
-              @click=${() => this.toggleClimate()}
+              @click=${() => this.onClimateControl(climateOn)}
             >
               ${this.renderStrokeIcon(FAN_ICON_INNER)}
             </button>`
@@ -584,7 +608,7 @@ export class VolvoCarCard extends LitElement {
             </div>`
           : nothing}
         ${hasFan
-          ? html`<div class="tile" @click=${() => this.toggleClimate()}>
+          ? html`<div class="tile" @click=${() => this.onClimateControl(climateOn)}>
               ${this.renderStrokeIcon(FAN_ICON_INNER)}
               <div class="tile-title">${L("climate")}</div>
               <div class="tile-sub">${climateOn ? L("climate_running") : L("climate_not_running")}</div>
@@ -671,7 +695,7 @@ export class VolvoCarCard extends LitElement {
                 <button
                   class="icon-button ${themeClass} ${climateOn ? "active" : ""}"
                   aria-label=${label(this.config.labels, "climate")}
-                  @click=${() => this.toggleClimate()}
+                  @click=${() => this.doToggleClimate()}
                 >
                   ${this.renderStrokeIcon(FAN_ICON_INNER)}
                   <span>${label(this.config.labels, "climate")}</span>
@@ -872,6 +896,11 @@ export class VolvoCarCard extends LitElement {
       font-size: 18px;
       font-weight: 400;
       color: white;
+    }
+    /* The bare-percentage sub-stat (appHeaderStat: "range") has no icon to anchor it,
+       so it reads small at the default size — bump it up a bit. */
+    .sub-value-plain {
+      font-size: 24px;
     }
     .sub-label {
       font-size: 18px;
