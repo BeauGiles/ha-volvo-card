@@ -134,6 +134,12 @@ export interface VolvoCardConfig {
    *  recreate the Volvo app's dark-blue tint for this specific card instance. Unset inherits
    *  the dashboard theme's card background, same as before. */
   background?: string;
+  /** Overrides the card's accent color (default teal) — used for the climate/engine "on"
+   *  state, the Charge/Climate tile "on" highlight, and the charge-settings slider thumbs.
+   *  Set this instead of `background` to brand a card with a manufacturer's accent color
+   *  (e.g. Polestar's orange) the way their own app does — as a highlight on a normal dark
+   *  card, not a full-bleed background wash. */
+  accentColor?: string;
   /** Adds the Volvo Cars app controls under the car: lock, climate, remote start and a "more"
    *  menu (flash / honk), plus Charge and Climate tiles. Unlock and remote start ask for a
    *  second tap to confirm. */

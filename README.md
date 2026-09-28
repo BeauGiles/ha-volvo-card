@@ -308,11 +308,23 @@ entities:
 Only the header/photo area and the "…" controls bar pick it up — the Charge/Climate tiles and
 the charge-settings sliders stay the theme's normal gray on purpose, same as the official apps'
 own tiles. The controls bar needs no separate setting: it's a translucent overlay, so it tints
-itself automatically from whatever `background` sits behind it. Pick a **dark** shade rather than
-a brand's bright accent color (e.g. Polestar's own accent is `#fe7c0c`, but that's too saturated
-as a full card background — something like `#241708` reads as "dark orange" without being
-garish). Status text over the photo already carries a drop shadow for legibility against a
-colorful background.
+itself automatically from whatever `background` sits behind it. Status text over the photo
+already carries a drop shadow for legibility against a colorful background.
+
+For a manufacturer's own bright accent color (e.g. Polestar's `#fe7c0c`), use `accentColor`
+instead of `background` — that's how their own apps actually use it: as a highlight on an
+otherwise normal dark card, not a full-bleed wash. It overrides the card's default teal
+everywhere that color is already used — the climate/engine "on" state, the Charge/Climate tile
+"on" highlight, and the charge-settings slider thumbs:
+
+```yaml
+type: custom:volvo-car-card
+accentColor: '#fe7c0c'
+entities:
+  ...
+```
+
+`background` and `accentColor` are independent — set either, both, or neither.
 
 ## Controls and tiles (optional) — added in this fork
 

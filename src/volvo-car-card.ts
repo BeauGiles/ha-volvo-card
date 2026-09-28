@@ -288,7 +288,9 @@ export class VolvoCarCard extends LitElement {
     // theme's normal gray on purpose, like the official app's Charge/Climate tiles do. The
     // ".controls" bar tints itself automatically: it's a translucent overlay, so it picks up
     // whatever color sits behind it here.
-    const cardStyle = this.config.background ? `background:${this.config.background};` : "";
+    const cardStyle =
+      (this.config.background ? `background:${this.config.background};` : "") +
+      (this.config.accentColor ? `--volvo-accent-color:${this.config.accentColor};` : "");
 
     return html`
       <ha-card style=${cardStyle}>
