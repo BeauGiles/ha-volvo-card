@@ -149,6 +149,13 @@ export interface VolvoCardConfig {
    *  (e.g. Polestar's orange) the way their own app does — as a highlight on a normal dark
    *  card, not a full-bleed background wash. */
   accentColor?: string;
+  /** CSS `font-family` value for the whole card, e.g. to match a manufacturer's brand
+   *  typeface. Defaults to "Hedvig Letters Sans", sans-serif. This only sets which font
+   *  the card asks for — the font itself has to already be available (a theme, a dashboard
+   *  resource with `@font-face` rules, etc.); it's not bundled with the card, since a brand
+   *  typeface is typically licensed and can't be redistributed. Include a fallback, e.g.
+   *  `"'Volvo Novum', 'Hedvig Letters Sans', sans-serif"`. */
+  fontFamily?: string;
   /** Adds the Volvo Cars app controls under the car: lock, climate, remote start and a "more"
    *  menu (flash / honk), plus Charge and Climate tiles. Unlock and remote start ask for a
    *  second tap to confirm. */

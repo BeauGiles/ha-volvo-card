@@ -318,7 +318,8 @@ export class VolvoCarCard extends LitElement {
     // whatever color sits behind it here.
     const cardStyle =
       (cardBackground ? `background:${cardBackground};` : "") +
-      (this.config.accentColor ? `--volvo-accent-color:${this.config.accentColor};` : "");
+      (this.config.accentColor ? `--volvo-accent-color:${this.config.accentColor};` : "") +
+      (this.config.fontFamily ? `--volvo-font-family:${this.config.fontFamily};` : "");
 
     return html`
       <ha-card style=${cardStyle}>
@@ -836,7 +837,7 @@ export class VolvoCarCard extends LitElement {
       position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
-      font-family: "Hedvig Letters Sans", sans-serif;
+      font-family: var(--volvo-font-family, "Hedvig Letters Sans", sans-serif);
     }
     .warning {
       padding: 16px;

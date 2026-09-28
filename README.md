@@ -349,6 +349,26 @@ entities:
 
 `background` and `accentColor` are independent — set either, both, or neither.
 
+## Card font (optional) — added in this fork
+
+Set `fontFamily` to any CSS `font-family` value to use a different typeface than the card's
+default (`"Hedvig Letters Sans", sans-serif`) — e.g. to match a manufacturer's brand font like
+Volvo Novum:
+
+```yaml
+type: custom:volvo-car-card
+fontFamily: "'Volvo Novum', 'Hedvig Letters Sans', sans-serif"
+entities:
+  ...
+```
+
+This only tells the card which font to *ask for* — it doesn't ship any font files, since a
+brand typeface is normally licensed and can't be bundled into a public card. The font itself
+has to already be available some other way: a theme, or (for a private, per-instance font like
+a manufacturer's own) a dashboard CSS resource declaring `@font-face` rules that point at font
+files you've placed under `config/www/` yourself. Always include a fallback in `fontFamily`, in
+case that resource isn't loaded for some reason.
+
 ## Controls and tiles (optional) — added in this fork
 
 `controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:
