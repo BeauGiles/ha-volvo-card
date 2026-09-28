@@ -75,6 +75,8 @@ for your exact IDs. The mapping itself looks like this:
 | `climatisation` *(new)* | `switch.<car>_climatization` |
 | `flash` | `button.<car>_flash` |
 | `honk_flash` | `button.<car>_honk_flash` |
+| `target_soc` *(new)* | `number.<car>_target_soc` |
+| `charge_current_limit` *(new)* | `number.<car>_charge_current_limit` |
 
 ```yaml
 type: custom:volvo-car-card
@@ -93,6 +95,8 @@ entities:
   climatisation: switch.xc40_abc123_climatization
   flash: button.xc40_abc123_flash
   honk_flash: button.xc40_abc123_honk_flash
+  target_soc: number.xc40_abc123_target_soc
+  charge_current_limit: number.xc40_abc123_charge_current_limit
 images:
   fallback: /local/assets/volvo-xc40.png   # see "No image auto-fetch" above
 ```
@@ -288,11 +292,16 @@ labels:            # optional, all have English defaults
   second tap.
 - **"…" menu** (`flash`, `honk`, `honk_flash`).
 - **Charge tile**: "Done at 19:58" while charging (needs `charging_time_left`), otherwise
-  "Plugged in" / "Not plugged in". Tapping it opens the charging status.
+  "Plugged in" / "Not plugged in". Tapping it opens sliders for `target_soc` /
+  `charge_current_limit` when either is configured, otherwise the charging status history.
 - **Climate tile**: running / not running. Tapping it toggles climate.
 
 A button only appears when its entity is configured. The Volvo API has no air-purification
 command, so the app's "Purify air" button is not available.
+
+Tapping any of the header stats (battery/range, electric/fuel sub-line, the status text, the
+charging-time-left text) opens that entity's own history/more-info dialog instead of the
+lock/climate popup — only the car photo itself opens the popup.
 
 ```yaml
 type: custom:volvo-car-card
@@ -308,12 +317,18 @@ entities:
   flash: button.volvo_xc60_flash
   honk: button.volvo_xc60_honk
   honk_flash: button.volvo_xc60_honk_flash
+  target_soc: number.volvo_xc60_target_soc               # slider, under the Charge tile
+  charge_current_limit: number.volvo_xc60_charge_current_limit
 labels:
   minutes: { one: minuta, few: minuty, many: minut, other: minuty }
   charge_done_at: Gotowe o
   # all labels: start_car, stop_car, more, flash, honk, honk_flash, confirm, charge,
-  # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running
+  # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running,
+  # target_soc, charge_current_limit
 ```
+
+Slider bounds (`min`/`max`/`step`) come from each `number.*` entity itself — same as HA's own
+more-info dialog — so there's nothing to configure beyond pointing at the right entity.
 
 ## Address row (optional) — added in this fork
 

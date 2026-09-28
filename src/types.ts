@@ -43,6 +43,11 @@ export interface VolvoCardEntities {
   /** Sensor whose state is a human-readable address (e.g. from reverse geocoding) and whose
    *  optional `parked_since` attribute (ISO time) says since when the car stands there. */
   location_address?: string;
+  /** `number.*` entity for the charge-limit target (%). Tapping the Charge tile opens a
+   *  slider for it (and/or `charge_current_limit`) instead of that entity's history. */
+  target_soc?: string;
+  /** `number.*` entity for the charge current limit (A). See `target_soc`. */
+  charge_current_limit?: string;
 }
 
 export interface VolvoCardImages {
@@ -91,6 +96,8 @@ export interface VolvoCardLabels {
   parked_today?: string;
   parked_yesterday?: string;
   parked_on?: string;
+  target_soc?: string;
+  charge_current_limit?: string;
 }
 
 export interface VolvoCardConfig {

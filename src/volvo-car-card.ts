@@ -48,6 +48,11 @@ export class VolvoCarCard extends LitElement {
   @state() private actionsOpen = false;
   @state() private climateOn = false;
   @state() private moreOpen = false;
+  @state() private chargeSettingsOpen = false;
+  /** Live slider positions while dragging, keyed by entity_id — kept separate from hass
+   *  state so the thumb doesn't jump back to the last-known value between input events
+   *  and the service call actually landing. */
+  @state() private sliderDraft: Record<string, number> = {};
   /** Control waiting for a confirming second tap ("unlock" / "start"), cleared after a few seconds. */
   @state() private armed: string | null = null;
   private armTimer?: number;
@@ -364,6 +369,52 @@ export class VolvoCarCard extends LitElement {
     this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
   }
 
+  /** Current value + slider bounds for a `number.*` entity, or null if unconfigured/unknown.
+   *  Bounds come from the entity's own `min`/`max`/`step` attributes, same as HA's built-in
+   *  more-info slider — never hardcoded, since they vary per integration/vehicle. */
+  private numberAttrs(entityId?: string): { value: number; min: number; max: number; step: number } | null {
+    if (!entityId) return null;
+    const st = this.hass.states[entityId];
+    if (!st) return null;
+    const value = this.sliderDraft[entityId] ?? parseFloat(st.state);
+    if (Number.isNaN(value)) return null;
+    const attrs = st.attributes || {};
+    return { value, min: attrs.min ?? 0, max: attrs.max ?? 100, step: attrs.step ?? 1 };
+  }
+
+  private onSliderInput(entityId: string, ev: Event): void {
+    const value = Number((ev.target as HTMLInputElement).value);
+    this.sliderDraft = { ...this.sliderDraft, [entityId]: value };
+  }
+
+  private onSliderChange(entityId: string, ev: Event): void {
+    const value = Number((ev.target as HTMLInputElement).value);
+    this.hass.callService("number", "set_value", { entity_id: entityId, value });
+    // Keep the draft value showing until the next hass update lands (avoids a snap-back
+    // to the pre-change state while the service call is still in flight).
+  }
+
+  private renderSliderRow(entityId: string | undefined, rowLabel: string, unit: string): TemplateResult | typeof nothing {
+    const n = this.numberAttrs(entityId);
+    if (!entityId || !n) return nothing;
+    return html`
+      <div class="ctl-slider-row">
+        <div class="ctl-slider-label">${rowLabel}</div>
+        <input
+          class="ctl-slider"
+          type="range"
+          min=${n.min}
+          max=${n.max}
+          step=${n.step}
+          .value=${String(n.value)}
+          @input=${(ev: Event) => this.onSliderInput(entityId, ev)}
+          @change=${(ev: Event) => this.onSliderChange(entityId, ev)}
+        />
+        <div class="ctl-slider-value">${round(n.value)}${unit}</div>
+      </div>
+    `;
+  }
+
   private onLockControl(isLocked: boolean): void {
     if (isLocked && !this.arm("unlock")) return; // unlocking needs a confirming tap
     this.disarm();
@@ -399,6 +450,7 @@ export class VolvoCarCard extends LitElement {
       { id: e.honk, text: L("honk") },
       { id: e.honk_flash, text: L("honk_flash") },
     ].filter((x) => !!x.id);
+    const hasChargeSettings = !!(e.target_soc || e.charge_current_limit);
 
     let chargeSub = "";
     if (kind !== "ice") {
@@ -464,7 +516,13 @@ export class VolvoCarCard extends LitElement {
         : nothing}
       <div class="tiles">
         ${kind !== "ice"
-          ? html`<div class="tile" @click=${() => this.moreInfo(e.charging_status || e.battery)}>
+          ? html`<div
+              class="tile"
+              @click=${() =>
+                hasChargeSettings
+                  ? (this.chargeSettingsOpen = !this.chargeSettingsOpen)
+                  : this.moreInfo(e.charging_status || e.battery)}
+            >
               ${this.renderStrokeIcon(BOLT_ICON_INNER)}
               <div class="tile-title">${L("charge")}</div>
               <div class="tile-sub">${chargeSub}</div>
@@ -478,6 +536,12 @@ export class VolvoCarCard extends LitElement {
             </div>`
           : nothing}
       </div>
+      ${this.chargeSettingsOpen && hasChargeSettings
+        ? html`<div class="charge-settings">
+            ${this.renderSliderRow(e.target_soc, L("target_soc"), "%")}
+            ${this.renderSliderRow(e.charge_current_limit, L("charge_current_limit"), "A")}
+          </div>`
+        : nothing}
     `;
   }
 
@@ -853,6 +917,56 @@ export class VolvoCarCard extends LitElement {
       font-size: 14px;
       color: var(--secondary-text-color);
       margin-top: 2px;
+    }
+
+    .charge-settings {
+      padding: 14px 16px 16px;
+      background: var(--ha-card-background, var(--card-background-color));
+      border-top: 1px solid var(--divider-color, rgba(127, 127, 127, 0.25));
+      font-family: "Hedvig Letters Sans", sans-serif;
+    }
+    .ctl-slider-row {
+      display: grid;
+      grid-template-columns: 84px 1fr 44px;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      color: var(--primary-text-color);
+    }
+    .ctl-slider-label {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
+    .ctl-slider-value {
+      font-size: 13px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .ctl-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--divider-color, rgba(127, 127, 127, 0.4));
+      outline: none;
+    }
+    .ctl-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--volvo-accent-color);
+      cursor: pointer;
+    }
+    .ctl-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 50%;
+      background: var(--volvo-accent-color);
+      cursor: pointer;
     }
 
     .address {
