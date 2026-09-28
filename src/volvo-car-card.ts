@@ -302,9 +302,20 @@ export class VolvoCarCard extends LitElement {
   }
 
   private toggleClimate(): void {
-    const { start_climatisation, stop_climatisation } = this.config.entities;
+    const { start_climatisation, stop_climatisation, climatisation } = this.config.entities;
+    if (climatisation) {
+      const on = getState(this.hass, climatisation) === "on";
+      this.hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: climatisation });
+      return;
+    }
     this.pressButton(this.climateOn ? stop_climatisation : start_climatisation);
     this.climateOn = !this.climateOn;
+  }
+
+  /** Real switch state when `climatisation` is configured; otherwise the card's own
+   *  locally-tracked guess (button-pair integrations have no on/off state to read). */
+  private climateIsOn(e: VolvoCardEntities): boolean {
+    return e.climatisation ? getState(this.hass, e.climatisation) === "on" : this.climateOn;
   }
 
   private arm(key: string): boolean {
@@ -355,7 +366,8 @@ export class VolvoCarCard extends LitElement {
   ): TemplateResult {
     const L = (k: Parameters<typeof label>[1]) => label(this.config.labels, k);
     const isLocked = getState(this.hass, e.lock) === "locked";
-    const hasFan = !!(e.start_climatisation || e.stop_climatisation);
+    const hasFan = !!(e.start_climatisation || e.stop_climatisation || e.climatisation);
+    const climateOn = this.climateIsOn(e);
     const hasEngine = !!(e.start_engine || e.stop_engine);
     const engineOn = getState(this.hass, e.engine_status) === "on";
     const extras = [
@@ -391,7 +403,7 @@ export class VolvoCarCard extends LitElement {
           : nothing}
         ${hasFan
           ? html`<button
-              class="ctl ${this.climateOn ? "on" : ""}"
+              class="ctl ${climateOn ? "on" : ""}"
               title=${L("climate")}
               aria-label=${L("climate")}
               @click=${() => this.toggleClimate()}
@@ -438,7 +450,7 @@ export class VolvoCarCard extends LitElement {
           ? html`<div class="tile" @click=${() => this.toggleClimate()}>
               ${this.renderStrokeIcon(FAN_ICON_INNER)}
               <div class="tile-title">${L("climate")}</div>
-              <div class="tile-sub">${this.climateOn ? L("climate_running") : L("climate_not_running")}</div>
+              <div class="tile-sub">${climateOn ? L("climate_running") : L("climate_not_running")}</div>
             </div>`
           : nothing}
       </div>
@@ -492,7 +504,8 @@ export class VolvoCarCard extends LitElement {
 
   private renderActionsDialog(e: VolvoCardEntities, isDark: boolean): TemplateResult {
     const isLocked = getState(this.hass, e.lock) === "locked";
-    const hasFan = !!(e.start_climatisation || e.stop_climatisation);
+    const hasFan = !!(e.start_climatisation || e.stop_climatisation || e.climatisation);
+    const climateOn = this.climateIsOn(e);
     const themeClass = isDark ? "dark" : "light";
 
     return html`
@@ -513,7 +526,7 @@ export class VolvoCarCard extends LitElement {
           ${hasFan
             ? html`
                 <button
-                  class="icon-button ${themeClass} ${this.climateOn ? "active" : ""}"
+                  class="icon-button ${themeClass} ${climateOn ? "active" : ""}"
                   aria-label=${label(this.config.labels, "climate")}
                   @click=${() => this.toggleClimate()}
                 >

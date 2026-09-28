@@ -25,6 +25,11 @@ export interface VolvoCardEntities {
   location?: string;
   start_climatisation?: string;
   stop_climatisation?: string;
+  /** Alternative to start_climatisation/stop_climatisation for integrations that expose
+   *  climate control as a single on/off switch (e.g. ha-volvo-au's `switch.*_climatization`)
+   *  rather than momentary start/stop buttons. Takes precedence when set — the card reads
+   *  the switch's real state instead of guessing it locally. */
+  climatisation?: string;
   /** Remaining charging time, e.g. the Volvo integration's `estimated_charging_time` sensor (minutes).
    *  Shown on the right of the status line while charging, like the Volvo app ("1 h 17 min left"). */
   charging_time_left?: string;

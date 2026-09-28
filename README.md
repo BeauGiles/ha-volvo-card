@@ -35,6 +35,68 @@
 > HACS will offer the update.
 
 
+## Using [ha-volvo-au](https://github.com/seiken27/ha-volvo-au) instead of the official Volvo integration
+
+Entity IDs are always config, never code (see [Card config](#card-config) below), so this card
+already works with any integration that exposes the same kind of entities — `ha-volvo-au` included.
+The only thing that differs is *which* entities you point it at, plus two behavior differences
+worth knowing about:
+
+- **Climate control is a switch, not two buttons.** The official Volvo integration exposes
+  `start_climatisation`/`stop_climatisation` as momentary buttons, so the card has to guess and
+  remember on/off state itself. `ha-volvo-au` exposes a real `switch.*_climatization` entity
+  instead — point `entities.climatisation` at it (new in this fork) and the card reads and toggles
+  its actual state, rather than guessing.
+- **No image auto-fetch.** The official integration can hand back a signed render URL via
+  `volvo.get_image_url` (see [The image backend](#the-image-backend-required-separately--not-part-of-the-hacs-install)
+  below); `ha-volvo-au` has no equivalent service. Skip straight to the
+  [static, manually-downloaded image](#alternative-a-fully-static-manually-downloaded-image)
+  approach — grab a render from your Volvo account/app once and serve it from `config/www/`.
+- **EV only, no remote engine start.** `ha-volvo-au` targets electric Volvos, so there's no
+  `fuel_amount`/`distance_to_empty_tank` (omit them — the card infers a BEV UI) and no
+  `start_engine`/`stop_engine`/`engine_status`.
+- **No standalone `honk`.** Only `honk_flash` (honk + flash together) exists as a button; leave
+  `honk` unset.
+
+Entity names depend on your car's own suffix (`ha-volvo-au` names entities after the model and the
+last 6 characters of the VIN, e.g. `sensor.xc40_abc123_battery`) — check **Developer Tools → States**
+for your exact IDs. The mapping itself looks like this:
+
+| card entity | `ha-volvo-au` entity |
+|---|---|
+| `battery` | `sensor.<car>_battery` |
+| `distance_to_empty_battery` | `sensor.<car>_range` |
+| `charging_connection_status` | `sensor.<car>_charger_connection` |
+| `charging_status` | `sensor.<car>_charging_status` |
+| `charging_time_left` | `sensor.<car>_time_to_full` |
+| `lock` | `lock.<car>_lock` |
+| `location` | `device_tracker.<car>_location` |
+| `location_address` | `sensor.<car>_location_address` (reverse-geocoded by the integration itself — no template needed) |
+| `climatisation` *(new)* | `switch.<car>_climatization` |
+| `flash` | `button.<car>_flash` |
+| `honk_flash` | `button.<car>_honk_flash` |
+
+```yaml
+type: custom:volvo-car-card
+name: XC40
+header: app
+controls: true
+entities:
+  battery: sensor.xc40_abc123_battery
+  distance_to_empty_battery: sensor.xc40_abc123_range
+  charging_connection_status: sensor.xc40_abc123_charger_connection
+  charging_status: sensor.xc40_abc123_charging_status
+  charging_time_left: sensor.xc40_abc123_time_to_full
+  lock: lock.xc40_abc123_lock
+  location: device_tracker.xc40_abc123_location
+  location_address: sensor.xc40_abc123_location_address
+  climatisation: switch.xc40_abc123_climatization
+  flash: button.xc40_abc123_flash
+  honk_flash: button.xc40_abc123_honk_flash
+images:
+  fallback: /local/assets/volvo-xc40.png   # see "No image auto-fetch" above
+```
+
 A [Home Assistant](https://www.home-assistant.io/) Lovelace card for vehicles exposed by the
 [Volvo integration](https://www.home-assistant.io/integrations/volvo/), styled after the layout of
 the official Volvo app. Works with combustion, plug-in hybrid, and full-electric Volvos — the card
@@ -217,8 +279,11 @@ labels:            # optional, all have English defaults
 `controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:
 
 - **Lock / unlock** (`lock`). Unlocking asks for a second tap within 4 seconds.
-- **Climate** (`start_climatisation` / `stop_climatisation`). The integration has no climate-status
-  entity, so the card tracks on/off itself, the same way the existing tap dialog does.
+- **Climate** (`start_climatisation` / `stop_climatisation`, or `climatisation` for integrations
+  that expose it as a single switch — see [Using ha-volvo-au](#using-ha-volvo-au-instead-of-the-official-volvo-integration)).
+  The official integration has no climate-status entity, so without `climatisation` the card tracks
+  on/off itself, the same way the existing tap dialog does; with `climatisation` it reads the
+  switch's real state instead.
 - **Remote start** (`start_engine` / `stop_engine`, with state from `engine_status`). Starting asks for a
   second tap.
 - **"…" menu** (`flash`, `honk`, `honk_flash`).
