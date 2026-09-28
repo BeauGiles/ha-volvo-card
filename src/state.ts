@@ -105,7 +105,9 @@ export function statusKey(
   const isFullyCharged = battery >= 100;
 
   if (isHome && !isLocked) return "unlocked";
-  if (chargeState === "done") return "done";
+  // "Done" only shows on the Charge tile, not up here — repeating it over the car photo
+  // is redundant, so a finished session just falls through to the plain locked/unlocked
+  // text below, the same way idle does.
   if (chargeState === "scheduled") {
     return isFullyCharged && isLocked ? "locked" : "scheduled";
   }

@@ -279,14 +279,13 @@ export class VolvoCarCard extends LitElement {
         : sub1.icon === "none"
           ? e.battery
           : e.fuel_amount;
-    const statusEntity = chargeState === "idle" ? e.lock : e.charging_status || e.charging_connection_status;
-    // The tiles/charge-settings panels paint their own solid background from the
-    // --ha-card-background/--card-background-color theme vars (so they read correctly
-    // against any theme) — override those too, or they'd stay the theme's default color
-    // and show a seam against a custom `background` here.
-    const cardStyle = this.config.background
-      ? `background:${this.config.background}; --ha-card-background:${this.config.background}; --card-background-color:${this.config.background};`
-      : "";
+    const statusEntity =
+      chargeState === "idle" || chargeState === "done" ? e.lock : e.charging_status || e.charging_connection_status;
+    // Only the card's own background, not the tiles/charge-settings panel — those stay the
+    // theme's normal gray on purpose, like the official app's Charge/Climate tiles do. The
+    // ".controls" bar tints itself automatically: it's a translucent overlay, so it picks up
+    // whatever color sits behind it here.
+    const cardStyle = this.config.background ? `background:${this.config.background};` : "";
 
     return html`
       <ha-card style=${cardStyle}>
@@ -896,6 +895,7 @@ export class VolvoCarCard extends LitElement {
       font-size: 18px;
       font-weight: 400;
       color: white;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
     /* The bare-percentage sub-stat (appHeaderStat: "range") has no icon to anchor it,
        so it reads small at the default size — bump it up a bit. */
@@ -1086,6 +1086,7 @@ export class VolvoCarCard extends LitElement {
       font-weight: 300;
       color: #aaa;
       cursor: pointer;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
 
     .status {
@@ -1097,6 +1098,7 @@ export class VolvoCarCard extends LitElement {
       font-size: 24px;
       font-weight: 300;
       color: #aaa;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
 
     /* No photo, or light theme: fall back to plain black/dark-grey text
@@ -1113,6 +1115,7 @@ export class VolvoCarCard extends LitElement {
     .header.theme-text .icon-svg,
     .header.theme-text .sub-value {
       color: #141414;
+      text-shadow: none;
     }
     .header.theme-text .sub-label,
     .header.theme-text .sub-row-2 {
@@ -1121,6 +1124,7 @@ export class VolvoCarCard extends LitElement {
     .status.theme-text,
     .status-right.theme-text {
       color: #5c5c5c;
+      text-shadow: none;
     }
 
     .volvo-card {

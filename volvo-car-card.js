@@ -58,7 +58,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
             volvo-car-card: no battery or fuel entities configured — nothing to show.
           </div>
         </ha-card>
-      `;const s=function(t,e,i){if("ice"===i)return"idle";if(!qt(t,e))return"idle";if(At(t,e))return"charging";const s=(vt(t,e.charging_status)||"").toLowerCase();return/\bdone\b|complete|finished/.test(s)?"done":/\bidle\b/.test(s)?"idle":"scheduled"}(this.hass,t,i),o="ice"!==i&&qt(this.hass,t),n="ice"!==i&&At(this.hass,t),r=this.headerMain(i,s),a=this.headerSub1(i,s),l=this.headerSub2(i,s),c=function(t,e,i,s){if("ice"===s){const i="home"===vt(t,e.location),s="locked"===vt(t,e.lock);return i&&!s?"unlocked":""}const o="home"===vt(t,e.location),n="locked"===vt(t,e.lock),r=xt(t,e.battery)??0;return o&&!n?"unlocked":"done"===i?"done":"scheduled"===i?r>=100&&n?"locked":"scheduled":"charging"===i?"charging":n?"locked":""}(this.hass,t,s,i),h=c?It(this.config.labels,c):"",d="charging"===s?this.chargingTimeLeft():null,{style:p,hasImage:u}=this.carImageStyle(o),g=this.hass.themes?.darkMode??!0,m=u&&g?"":"theme-text",f="ice"===i?t.distance_to_empty_tank:this.rangeFirst&&"hybrid"!==i?t.distance_to_empty_battery:"scheduled"===s||this.appHeader?t.battery:t.distance_to_empty_battery,b=a?"lightning"===a.icon?t.distance_to_empty_battery:"none"===a.icon?t.battery:t.fuel_amount:void 0,v="idle"===s?t.lock:t.charging_status||t.charging_connection_status,y=this.config.background?`background:${this.config.background}; --ha-card-background:${this.config.background}; --card-background-color:${this.config.background};`:"";return W`
+      `;const s=function(t,e,i){if("ice"===i)return"idle";if(!qt(t,e))return"idle";if(At(t,e))return"charging";const s=(vt(t,e.charging_status)||"").toLowerCase();return/\bdone\b|complete|finished/.test(s)?"done":/\bidle\b/.test(s)?"idle":"scheduled"}(this.hass,t,i),o="ice"!==i&&qt(this.hass,t),n="ice"!==i&&At(this.hass,t),r=this.headerMain(i,s),a=this.headerSub1(i,s),l=this.headerSub2(i,s),c=function(t,e,i,s){if("ice"===s){const i="home"===vt(t,e.location),s="locked"===vt(t,e.lock);return i&&!s?"unlocked":""}const o="home"===vt(t,e.location),n="locked"===vt(t,e.lock),r=xt(t,e.battery)??0;return o&&!n?"unlocked":"scheduled"===i?r>=100&&n?"locked":"scheduled":"charging"===i?"charging":n?"locked":""}(this.hass,t,s,i),h=c?It(this.config.labels,c):"",d="charging"===s?this.chargingTimeLeft():null,{style:p,hasImage:u}=this.carImageStyle(o),g=this.hass.themes?.darkMode??!0,m=u&&g?"":"theme-text",f="ice"===i?t.distance_to_empty_tank:this.rangeFirst&&"hybrid"!==i?t.distance_to_empty_battery:"scheduled"===s||this.appHeader?t.battery:t.distance_to_empty_battery,b=a?"lightning"===a.icon?t.distance_to_empty_battery:"none"===a.icon?t.battery:t.fuel_amount:void 0,v="idle"===s||"done"===s?t.lock:t.charging_status||t.charging_connection_status,y=this.config.background?`background:${this.config.background};`:"";return W`
       <ha-card style=${y}>
         <div class="volvo-card" @click=${this.openActions}>
           ${n?this.renderPulse():J}
@@ -365,6 +365,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
       font-size: 18px;
       font-weight: 400;
       color: white;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
     /* The bare-percentage sub-stat (appHeaderStat: "range") has no icon to anchor it,
        so it reads small at the default size — bump it up a bit. */
@@ -555,6 +556,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
       font-weight: 300;
       color: #aaa;
       cursor: pointer;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
 
     .status {
@@ -566,6 +568,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
       font-size: 24px;
       font-weight: 300;
       color: #aaa;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
     }
 
     /* No photo, or light theme: fall back to plain black/dark-grey text
@@ -582,6 +585,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
     .header.theme-text .icon-svg,
     .header.theme-text .sub-value {
       color: #141414;
+      text-shadow: none;
     }
     .header.theme-text .sub-label,
     .header.theme-text .sub-row-2 {
@@ -590,6 +594,7 @@ class ft extends mt{}ft.directiveName="unsafeSVG",ft.resultType=2;const bt=(t=>(
     .status.theme-text,
     .status-right.theme-text {
       color: #5c5c5c;
+      text-shadow: none;
     }
 
     .volvo-card {

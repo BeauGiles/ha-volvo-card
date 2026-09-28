@@ -305,6 +305,15 @@ entities:
   ...
 ```
 
+Only the header/photo area and the "…" controls bar pick it up — the Charge/Climate tiles and
+the charge-settings sliders stay the theme's normal gray on purpose, same as the official apps'
+own tiles. The controls bar needs no separate setting: it's a translucent overlay, so it tints
+itself automatically from whatever `background` sits behind it. Pick a **dark** shade rather than
+a brand's bright accent color (e.g. Polestar's own accent is `#fe7c0c`, but that's too saturated
+as a full card background — something like `#241708` reads as "dark orange" without being
+garish). Status text over the photo already carries a drop shadow for legibility against a
+colorful background.
+
 ## Controls and tiles (optional) — added in this fork
 
 `controls: true` adds the row of buttons from the Volvo Cars app under the car photo, plus two tiles:

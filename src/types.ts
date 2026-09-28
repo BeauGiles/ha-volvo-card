@@ -144,4 +144,4 @@ export interface VolvoCardConfig {
 
 export type ChargeState = "idle" | "scheduled" | "charging" | "done";
 export type VehicleKind = "hybrid" | "bev" | "ice" | "unknown";
-export type StatusKey = "unlocked" | "locked" | "scheduled" | "charging" | "done" | "";
+export type StatusKey = "unlocked" | "locked" | "scheduled" | "charging" | "";
