@@ -233,6 +233,16 @@ export class VolvoCarCard extends LitElement {
     };
   }
 
+  /** Resolves `config.background` for the current HA theme mode — a plain string applies to
+   *  both modes, an object picks `dark`/`light` (or falls back to the theme's own card
+   *  background when that mode's entry is unset). */
+  private effectiveBackground(isDark: boolean): string | undefined {
+    const bg = this.config.background;
+    if (!bg) return undefined;
+    if (typeof bg === "string") return bg;
+    return isDark ? bg.dark : bg.light;
+  }
+
   protected render(): TemplateResult {
     if (!this.hass || !this.config) return html``;
 
@@ -260,10 +270,12 @@ export class VolvoCarCard extends LitElement {
     const timeLeft = chargeState === "charging" ? this.chargingTimeLeft() : null;
     const { style: imgStyle, hasImage } = this.carImageStyle(connected);
     const isDark = this.hass.themes?.darkMode ?? true;
-    // Text over the car photo stays white regardless of theme (the photo's own
-    // dark background makes that legible). Without a photo, or in light mode,
-    // fall back to plain black/dark-grey text instead of white-on-nothing.
-    const overlayClass = !hasImage || !isDark ? "theme-text" : "";
+    const cardBackground = this.effectiveBackground(isDark);
+    // Text over the car photo, or over an explicit `background` override, stays white
+    // regardless of theme (both are assumed dark enough to read white text). Otherwise
+    // the card is sitting on the theme's own surface color, so in light mode fall back
+    // to plain black/dark-grey text instead of white-on-light.
+    const overlayClass = hasImage || cardBackground || isDark ? "" : "theme-text";
 
     // Which entity each stat's "more info" (history) should open — kept next to the
     // value that displays it, since both depend on the same kind/chargeState branching.
@@ -289,7 +301,7 @@ export class VolvoCarCard extends LitElement {
     // ".controls" bar tints itself automatically: it's a translucent overlay, so it picks up
     // whatever color sits behind it here.
     const cardStyle =
-      (this.config.background ? `background:${this.config.background};` : "") +
+      (cardBackground ? `background:${cardBackground};` : "") +
       (this.config.accentColor ? `--volvo-accent-color:${this.config.accentColor};` : "");
 
     return html`

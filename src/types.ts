@@ -132,8 +132,14 @@ export interface VolvoCardConfig {
   appHeaderStat?: "battery" | "range";
   /** Any CSS `background` value (color, gradient, ...) applied to the card itself — e.g. to
    *  recreate the Volvo app's dark-blue tint for this specific card instance. Unset inherits
-   *  the dashboard theme's card background, same as before. */
-  background?: string;
+   *  the dashboard theme's card background, same as before.
+   *
+   *  Pass an object to use a different value per HA theme mode, e.g.
+   *  `{ dark: "#141d27" }` (light mode then falls back to the theme's own card background).
+   *  A mode left out of the object falls back the same way. The card assumes any background
+   *  you do set is dark enough for its white overlay text — pick dark shades for both modes,
+   *  or leave `light` unset to get theme-appropriate dark text in light mode instead. */
+  background?: string | { dark?: string; light?: string };
   /** Overrides the card's accent color (default teal) — used for the climate/engine "on"
    *  state, the Charge/Climate tile "on" highlight, and the charge-settings slider thumbs.
    *  Set this instead of `background` to brand a card with a manufacturer's accent color
