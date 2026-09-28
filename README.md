@@ -324,11 +324,21 @@ labels:
   charge_done_at: Gotowe o
   # all labels: start_car, stop_car, more, flash, honk, honk_flash, confirm, charge,
   # charge_done_at, charge_plugged_in, charge_not_plugged_in, climate_running, climate_not_running,
-  # target_soc, charge_current_limit
+  # target_soc, charge_current_limit, done
 ```
 
 Slider bounds (`min`/`max`/`step`) come from each `number.*` entity itself — same as HA's own
 more-info dialog — so there's nothing to configure beyond pointing at the right entity.
+
+### "Scheduled" vs "Done" vs plain idle
+
+The status text over the car reads the `charging_status` entity's own text, not just whether
+it's plugged in. "Scheduled" is the fallback for "connected but not charging" (waiting on a
+timer); an entity that instead reports the session finished (containing "done", "complete", or
+"finished" — e.g. ha-volvo-au's "Done", which can happen well under 100% when charging to a
+lower target) shows **Done** instead, and one that reports "idle" falls back to the plain
+locked/unlocked text rather than implying a schedule is pending. Override the "Done" wording
+with `labels.done`.
 
 ## Address row (optional) — added in this fork
 

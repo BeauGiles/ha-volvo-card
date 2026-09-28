@@ -32,6 +32,7 @@ export const DEFAULT_LABELS: TextLabels = {
   parked_on: "Last parked",
   target_soc: "Charge limit",
   charge_current_limit: "Charge current",
+  done: "Done",
 };
 
 export function label(labels: VolvoCardLabels | undefined, key: keyof TextLabels): string {

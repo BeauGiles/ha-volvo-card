@@ -457,6 +457,8 @@ export class VolvoCarCard extends LitElement {
       if (chargeState === "charging") {
         const at = this.chargeDoneAt();
         chargeSub = at ? `${L("charge_done_at")} ${at}` : label(this.config.labels, "charging");
+      } else if (chargeState === "done") {
+        chargeSub = L("done");
       } else {
         chargeSub = connected ? L("charge_plugged_in") : L("charge_not_plugged_in");
       }

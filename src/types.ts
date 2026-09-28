@@ -98,6 +98,9 @@ export interface VolvoCardLabels {
   parked_on?: string;
   target_soc?: string;
   charge_current_limit?: string;
+  /** Shown instead of "Scheduled" when the charging-status entity's own text says the
+   *  session already finished (e.g. ha-volvo-au's "Done", reached at a target below 100%). */
+  done?: string;
 }
 
 export interface VolvoCardConfig {
@@ -121,6 +124,6 @@ export interface VolvoCardConfig {
   locale?: string;
 }
 
-export type ChargeState = "idle" | "scheduled" | "charging";
+export type ChargeState = "idle" | "scheduled" | "charging" | "done";
 export type VehicleKind = "hybrid" | "bev" | "ice" | "unknown";
-export type StatusKey = "unlocked" | "locked" | "scheduled" | "charging" | "";
+export type StatusKey = "unlocked" | "locked" | "scheduled" | "charging" | "done" | "";

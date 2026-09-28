@@ -63,6 +63,14 @@ export function isCharging(hass: HomeAssistant, entities: VolvoCardEntities): bo
  * this falls out naturally since an ICE config has no charging entities set,
  * so isConnected()/isCharging() are already false, but it's made explicit
  * here rather than relying on that as an implicit side effect.
+ *
+ * "Scheduled" was originally the catch-all for "connected but not actively
+ * charging" — accurate for an integration whose only other charging_status
+ * value means "waiting for the timer". Some integrations (e.g. ha-volvo-au)
+ * also report a distinct "Done" (session finished, possibly below 100% when
+ * charging to a target below full) and/or "Idle" — neither of which implies
+ * a pending schedule, so they're read from the entity's own text rather than
+ * folded into "scheduled".
  */
 export function deriveChargeState(
   hass: HomeAssistant,
@@ -71,7 +79,11 @@ export function deriveChargeState(
 ): ChargeState {
   if (kind === "ice") return "idle";
   if (!isConnected(hass, entities)) return "idle";
-  return isCharging(hass, entities) ? "charging" : "scheduled";
+  if (isCharging(hass, entities)) return "charging";
+  const s = (getState(hass, entities.charging_status) || "").toLowerCase();
+  if (/\bdone\b|complete|finished/.test(s)) return "done";
+  if (/\bidle\b/.test(s)) return "idle";
+  return "scheduled";
 }
 
 export function statusKey(
@@ -93,6 +105,7 @@ export function statusKey(
   const isFullyCharged = battery >= 100;
 
   if (isHome && !isLocked) return "unlocked";
+  if (chargeState === "done") return "done";
   if (chargeState === "scheduled") {
     return isFullyCharged && isLocked ? "locked" : "scheduled";
   }
